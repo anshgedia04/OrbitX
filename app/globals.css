@@ -1,26 +1,109 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0e27;
+  --foreground: #ffffff;
+  --primary: #6B46C1;
+  --secondary: #4299E1;
+  --accent: #10B981;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-space-grotesk);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom Markdown Styles */
+.markdown-preview {
+  @apply text-white/90 leading-relaxed;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  @apply font-bold text-blue-400 mt-8 mb-4 scroll-m-20;
+}
+
+.markdown-preview h1 {
+  @apply text-3xl border-b border-white/10 pb-2;
+}
+
+.markdown-preview h2 {
+  @apply text-2xl border-b border-white/10 pb-2;
+}
+
+.markdown-preview h3 {
+  @apply text-xl;
+}
+
+.markdown-preview h4 {
+  @apply text-lg;
+}
+
+.markdown-preview p {
+  @apply leading-7 [&:not(:first-child)]:mt-6;
+}
+
+.markdown-preview a {
+  @apply font-medium text-blue-400 underline underline-offset-4 hover:text-blue-300 transition-colors;
+}
+
+.markdown-preview ul {
+  @apply my-6 ml-6 list-disc [&>li]:mt-2 marker:text-white/50;
+}
+
+.markdown-preview ol {
+  @apply my-6 ml-6 list-decimal [&>li]:mt-2 marker:text-white/50;
+}
+
+.markdown-preview code {
+  @apply relative rounded bg-white/10 px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold text-blue-200;
+}
+
+.markdown-preview pre {
+  @apply mb-4 mt-6 overflow-x-auto rounded-lg border border-white/10 bg-[#1e1e1e] p-4;
+}
+
+.markdown-preview pre code {
+  @apply bg-transparent p-0 text-white font-normal;
+}
+
+.markdown-preview table {
+  @apply w-full border-collapse my-6 text-sm;
+}
+
+.markdown-preview th {
+  @apply border border-white/20 bg-white/5 px-4 py-2 text-left font-bold text-white;
+}
+
+.markdown-preview td {
+  @apply border border-white/10 px-4 py-2 text-white/80;
+}
+
+.markdown-preview tr:hover td {
+  @apply bg-white/5;
+}
+
+.markdown-preview blockquote {
+  @apply mt-6 border-l-4 border-blue-400 pl-6 italic text-white/70 bg-white/5 py-2 pr-4 rounded-r;
+}
+
+.markdown-preview img {
+  @apply rounded-lg border border-white/10 my-6 max-w-full h-auto;
+}
+
+.markdown-preview hr {
+  @apply border-white/10 my-8;
 }
