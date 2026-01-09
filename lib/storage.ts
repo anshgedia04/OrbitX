@@ -3,6 +3,7 @@ import connectToDatabase from "./mongodb";
 import mongoose from "mongoose";
 
 export const STORAGE_LIMIT = 40 * 1024 * 1024; // 40MB in bytes
+export const PRO_STORAGE_LIMIT = 100 * 1024 * 1024; // 100MB in bytes
 
 export async function calculateUserStorage(userId: string): Promise<number> {
     await connectToDatabase();
