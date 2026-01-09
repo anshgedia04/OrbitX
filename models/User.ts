@@ -17,6 +17,10 @@ export interface IUser extends Document {
     studyStreak: number;
     tokenVersion: number;
     twoFactorEnabled: boolean;
+    subscriptionStatus: 'free' | 'pro';
+    subscriptionId?: string;
+    subscriptionPlan?: string;
+    subscriptionExpiry?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -38,6 +42,10 @@ const UserSchema: Schema = new Schema({
     studyStreak: { type: Number, default: 0 },
     tokenVersion: { type: Number, default: 0 },
     twoFactorEnabled: { type: Boolean, default: false },
+    subscriptionStatus: { type: String, enum: ['free', 'pro'], default: 'free' },
+    subscriptionId: { type: String },
+    subscriptionPlan: { type: String },
+    subscriptionExpiry: { type: Date },
 }, {
     timestamps: true,
 });

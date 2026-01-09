@@ -81,7 +81,24 @@ export default function SubscriptionPage() {
                     </div>
 
                     <Button
-                        onClick={handleUpgrade}
+                        onClick={async () => {
+                            // Fetch user email to pre-fill
+                            try {
+                                const res = await fetch('/api/auth/me'); // Create this or use existing way to get user
+                                if (res.ok) {
+                                    const user = await res.json();
+                                    // REPLACE THIS WITH YOUR ACTUAL RAZORPAY PAYMENT PAGE URL provided by User
+                                    // Example: https://rzp.io/l/your_id
+                                    const razorpayUrl = "https://rzp.io/rzp/XVdonxrm";
+                                    window.location.href = `${razorpayUrl}?email=${encodeURIComponent(user.email)}`;
+                                } else {
+                                    // Fallback if can't get email, just redirect
+                                    window.location.href = "https://rzp.io/l/replace_this_with_your_actual_url";
+                                }
+                            } catch (e) {
+                                window.location.href = "https://rzp.io/l/replace_this_with_your_actual_url";
+                            }
+                        }}
                         className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white border-0 shadow-lg shadow-purple-500/25"
                     >
                         <Zap size={16} className="mr-2 fill-current" />
