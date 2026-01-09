@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
         path.startsWith('/shared') ||
         path.startsWith('/api/auth') ||
         path.startsWith('/api/shared') ||
+        path.startsWith('/api/webhooks') ||
         path.startsWith('/_next') ||
         path.startsWith('/favicon.ico') ||
         path.startsWith('/public');
