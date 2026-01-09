@@ -53,7 +53,7 @@ export default function LoginPage() {
             localStorage.setItem("refreshToken", result.refreshToken);
 
             setTimeout(() => {
-                router.push("/");
+                router.push("/dashboard");
             }, 1000);
         } catch (error: any) {
             showToast(error.message, "error");

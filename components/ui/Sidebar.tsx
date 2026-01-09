@@ -188,8 +188,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                     icon={<LayoutDashboard size={20} />}
                     label="Dashboard"
                     isCollapsed={isCollapsed}
-                    active={pathname === "/"}
-                    onClick={() => router.push("/")}
+                    active={pathname === "/dashboard"}
+                    onClick={() => router.push("/dashboard")}
                 />
                 <NavItem
                     icon={<FileText size={20} />}

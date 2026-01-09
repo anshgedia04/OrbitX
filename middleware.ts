@@ -33,9 +33,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // Protected Routes
-    // Protected Routes
     // Protect root "/" and specific app routes, but exclude public ones
     const isPublicPath =
+        path === '/' ||
         path === '/login' ||
         path === '/signup' ||
         path === '/google-callback' ||
@@ -46,10 +46,15 @@ export async function middleware(request: NextRequest) {
         path.startsWith('/favicon.ico') ||
         path.startsWith('/public');
 
-    if (!isPublicPath) {
-        const authHeader = request.headers.get('Authorization');
-        const token = authHeader?.split(' ')[1] || request.cookies.get('token')?.value;
+    // Redirect authenticated users to dashboard if they visit public pages
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.split(' ')[1] || request.cookies.get('token')?.value;
 
+    if (token && (path === '/' || path === '/login' || path === '/signup')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    if (!isPublicPath) {
         if (!token) {
             // If accessing root or protected route without token, redirect to login
             return NextResponse.redirect(new URL('/login', request.url));
