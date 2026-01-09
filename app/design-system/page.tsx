@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { StarBackground } from "@/components/ui/StarBackground";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -17,7 +16,6 @@ const DemoContent = () => {
 
     return (
         <div className="flex h-screen text-white overflow-hidden font-sans">
-            <StarBackground />
             <Sidebar />
 
             <div className="flex-1 flex flex-col h-full overflow-hidden">

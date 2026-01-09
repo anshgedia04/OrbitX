@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
-import { StarBackground } from "@/components/ui/StarBackground";
 import { ToastProvider } from "@/components/ui/Toast";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { QuickNoteModal } from "@/components/notes/QuickNoteModal";
@@ -45,7 +44,6 @@ export default function DashboardLayout({
         <AuthProvider>
             <ToastProvider>
                 <div className="flex h-screen w-full overflow-hidden bg-background text-white font-sans">
-                    <StarBackground density={50} speed={0.2} />
 
                     {/* Desktop Sidebar */}
                     <div className="hidden lg:block h-full">

@@ -7,7 +7,6 @@ import remarkGfm from "remark-gfm";
 import Editor from "@monaco-editor/react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
-import { StarBackground } from "@/components/ui/StarBackground";
 import { ArrowRight, AlertTriangle, Rocket } from "lucide-react";
 import Link from "next/link";
 
@@ -51,7 +50,6 @@ export default function SharedNotePage() {
     if (error) {
         return (
             <div className="h-screen w-full bg-[#0f111a] flex flex-col items-center justify-center text-white p-4">
-                <StarBackground />
                 <div className="bg-white/5 border border-white/10 p-8 rounded-2xl max-w-md w-full text-center backdrop-blur-xl relative z-10">
                     <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-400">
                         <AlertTriangle size={32} />
@@ -68,7 +66,6 @@ export default function SharedNotePage() {
 
     return (
         <div className="min-h-screen bg-[#0f111a] text-white font-sans flex flex-col">
-            <StarBackground density={30} />
 
             {/* Header */}
             <header className="border-b border-white/10 bg-[#0f111a]/80 backdrop-blur-md sticky top-0 z-50">

@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import { FileText, Shield, Zap, Rocket } from 'lucide-react';
-import { StarBackground } from '@/components/ui/StarBackground';
 
 export default function LandingPage() {
     return (
         <div className="min-h-screen text-white selection:bg-purple-500/30 font-sans overflow-hidden relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black pointer-events-none z-0" />
-            <StarBackground />
 
             {/* Navigation */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
