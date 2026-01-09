@@ -121,14 +121,14 @@ export default function SubscriptionPage() {
                                         const user = await res.json();
                                         // REPLACE THIS WITH YOUR ACTUAL RAZORPAY PAYMENT PAGE URL provided by User
                                         // Example: https://rzp.io/l/your_id
-                                        const razorpayUrl = "https://rzp.io/rzp/XVdonxrm";
+                                        const razorpayUrl = "https://rzp.io/rzp/JSEcnaH";
                                         window.location.href = `${razorpayUrl}?email=${encodeURIComponent(user.email)}`;
                                     } else {
                                         // Fallback if can't get email, just redirect
-                                        window.location.href = "https://rzp.io/rzp/XVdonxrm";
+                                        window.location.href = "https://rzp.io/rzp/JSEcnaH";
                                     }
                                 } catch (e) {
-                                    window.location.href = "https://rzp.io/rzp/XVdonxrm";
+                                    window.location.href = "https://rzp.io/rzp/JSEcnaH";
                                 }
                             }}
                             className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white border-0 shadow-lg shadow-purple-500/25"
