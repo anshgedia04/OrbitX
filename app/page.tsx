@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { FileText, Shield, Zap } from 'lucide-react';
+import { FileText, Shield, Zap, Rocket } from 'lucide-react';
 import { StarBackground } from '@/components/ui/StarBackground';
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-black text-white selection:bg-purple-500/30 font-sans overflow-hidden relative">
+        <div className="min-h-screen text-white selection:bg-purple-500/30 font-sans overflow-hidden relative">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black pointer-events-none z-0" />
             <StarBackground />
 
             {/* Navigation */}
@@ -12,7 +13,7 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-                            <span className="font-bold text-white">O</span>
+                            <Rocket className="w-5 h-5 text-white" />
                         </div>
                         <span className="font-bold text-xl tracking-tight">OrbitX</span>
                     </div>
@@ -34,7 +35,7 @@ export default function LandingPage() {
             </nav>
 
             {/* Hero Section */}
-            <main className="relative pt-32 pb-16 px-6">
+            <main className="relative z-10 pt-32 pb-16 px-6">
                 <div className="max-w-4xl mx-auto text-center space-y-8">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-purple-400 mb-4 animate-fade-in">
                         <span className="relative flex h-2 w-2">
@@ -101,7 +102,7 @@ export default function LandingPage() {
             </main>
 
             {/* Footer */}
-            <footer className="border-t border-white/10 bg-black py-12 mt-20">
+            <footer className="relative z-10 border-t border-white/10 bg-black/40 backdrop-blur-xl py-12 mt-20">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <p className="text-white/40 text-sm">
                         © {new Date().getFullYear()} OrbitX Notes. All rights reserved.

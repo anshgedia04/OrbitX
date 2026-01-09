@@ -8,7 +8,7 @@ import Editor from "@monaco-editor/react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/Button";
 import { StarBackground } from "@/components/ui/StarBackground";
-import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle, Rocket } from "lucide-react";
 import Link from "next/link";
 
 export default function SharedNotePage() {
@@ -75,7 +75,7 @@ export default function SharedNotePage() {
                 <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center font-bold text-white">
-                            O
+                            <Rocket className="w-5 h-5 text-white" />
                         </div>
                         <span className="font-bold text-lg tracking-tight">OrbitX Notes</span>
                     </div>

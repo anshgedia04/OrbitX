@@ -43,25 +43,58 @@ export const StarBackground: React.FC<StarBackgroundProps> = ({
             }
         };
 
+        let shootingStar: { x: number; y: number; length: number; speed: number; opacity: number } | null = null;
+        let shootingStarInterval = 0;
+
         const drawStars = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "transparent"; // Clear with transparent
+            ctx.fillStyle = "transparent";
 
+            // Draw static stars
             stars.forEach((star) => {
                 ctx.beginPath();
                 ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha + Math.sin(Date.now() * 0.001 * star.speed) * 0.2})`; // Twinkle
                 ctx.fill();
 
-                // Move star
                 star.y -= star.speed;
-
-                // Reset if out of bounds
                 if (star.y < 0) {
                     star.y = canvas.height;
                     star.x = Math.random() * canvas.width;
                 }
             });
+
+            // Handle shooting star
+            shootingStarInterval++;
+            if (shootingStarInterval > 150 && Math.random() > 0.99 && !shootingStar) {
+                shootingStar = {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * (canvas.height / 2),
+                    length: Math.random() * 80 + 20,
+                    speed: Math.random() * 10 + 10,
+                    opacity: 1
+                };
+                shootingStarInterval = 0;
+            }
+
+            if (shootingStar) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${shootingStar.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.moveTo(shootingStar.x, shootingStar.y);
+                ctx.lineTo(shootingStar.x - shootingStar.length, shootingStar.y + shootingStar.length); // Diagonal left-down
+                ctx.stroke();
+                ctx.restore();
+
+                shootingStar.x -= shootingStar.speed;
+                shootingStar.y += shootingStar.speed;
+                shootingStar.opacity -= 0.02;
+
+                if (shootingStar.opacity <= 0 || shootingStar.x < 0 || shootingStar.y > canvas.height) {
+                    shootingStar = null;
+                }
+            }
 
             animationFrameId = requestAnimationFrame(drawStars);
         };
@@ -80,7 +113,7 @@ export const StarBackground: React.FC<StarBackgroundProps> = ({
     return (
         <canvas
             ref={canvasRef}
-            className="fixed top-0 left-0 w-full h-full pointer-events-none z-[-1]"
+            className="absolute top-0 left-0 w-full h-full pointer-events-none z-[1]"
         />
     );
 };
