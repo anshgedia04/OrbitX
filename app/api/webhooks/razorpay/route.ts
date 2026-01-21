@@ -48,9 +48,9 @@ export async function POST(req: Request) {
             // 4. Update User
             await dbConnect();
 
-            // Calculate expiry (1 year for Pro plan as per your setup)
+            // Calculate expiry (1 month for Pro plan)
             const expiryDate = new Date();
-            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+            expiryDate.setMonth(expiryDate.getMonth() + 1);
 
             const updatedUser = await User.findOneAndUpdate(
                 { email: email },
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
                     $set: {
                         subscriptionStatus: 'pro',
                         subscriptionId: paymentId,
-                        subscriptionPlan: 'pro_yearly',
+                        subscriptionPlan: 'pro_monthly',
                         subscriptionExpiry: expiryDate,
                     }
                 },

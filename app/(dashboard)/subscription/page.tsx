@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, Star, Zap, Shield, Crown } from "lucide-react";
+import { Check, Star, Zap, Shield, Crown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
@@ -90,13 +90,14 @@ export default function SubscriptionPage() {
                         <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-2">Pro Plan</h3>
                         <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-bold text-white">₹9</span>
-                            <span className="text-white/50">/year</span>
+                            <span className="text-white/50">/month</span>
                         </div>
                         <p className="text-purple-200/50 mt-4 text-sm">For power users who need more.</p>
                     </div>
 
                     <div className="flex-grow space-y-4 mb-8">
                         <FeatureItem text="100 MB Storage" highlighted />
+                        <FeatureItem text="Get Access of OrbitX AI" special />
                         <FeatureItem text="Priority Email Support" highlighted />
                         <FeatureItem text="Unlimited Note Creation" highlighted />
                         <FeatureItem text="Advanced Search" />
@@ -169,13 +170,19 @@ export default function SubscriptionPage() {
     );
 }
 
-function FeatureItem({ text, highlighted = false }: { text: string; highlighted?: boolean }) {
+function FeatureItem({ text, highlighted = false, special = false }: { text: string; highlighted?: boolean; special?: boolean }) {
     return (
         <div className="flex items-center gap-3">
-            <div className={cn("p-1 rounded-full", highlighted ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60")}>
-                <Check size={14} strokeWidth={3} />
+            <div className={cn("p-1 rounded-full",
+                special ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400" :
+                    highlighted ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/60"
+            )}>
+                {special ? <Sparkles size={14} className="animate-pulse" /> : <Check size={14} strokeWidth={3} />}
             </div>
-            <span className={cn("text-sm", highlighted ? "text-white font-medium" : "text-white/70")}>{text}</span>
+            <span className={cn("text-sm",
+                special ? "font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400" :
+                    highlighted ? "text-white font-medium" : "text-white/70"
+            )}>{text}</span>
         </div>
     );
 }

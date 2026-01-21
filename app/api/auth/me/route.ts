@@ -16,10 +16,18 @@ export async function GET(req: Request) {
         const { payload } = await jwtVerify(token, secret);
 
         await dbConnect();
-        const user = await User.findById(payload.userId).select('email name subscriptionStatus');
+        let user = await User.findById(payload.userId).select('email name subscriptionStatus subscriptionExpiry');
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        // Check for subscription expiry
+        if (user.subscriptionStatus === 'pro' && user.subscriptionExpiry && new Date() > new Date(user.subscriptionExpiry)) {
+            user.subscriptionStatus = 'free';
+            user.subscriptionPlan = undefined;
+            user.subscriptionExpiry = undefined;
+            await user.save();
         }
 
         return NextResponse.json({

@@ -11,6 +11,45 @@ const ProfileSchema = z.object({
     avatar: z.string().optional(),
 });
 
+export async function GET(req: NextRequest) {
+    try {
+        // Auth check
+        let token = req.headers.get("authorization")?.split(" ")[1];
+        if (!token) {
+            const cookieStore = await cookies();
+            token = cookieStore.get('token')?.value;
+        }
+
+        if (!token) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const decoded = await verifyToken(token);
+        if (!decoded) {
+            return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+        }
+
+        await connectToDatabase();
+
+        let user = await User.findById(decoded.userId).select("-passwordHash");
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        // Check for subscription expiry
+        if (user.subscriptionStatus === 'pro' && user.subscriptionExpiry && new Date() > new Date(user.subscriptionExpiry)) {
+            user.subscriptionStatus = 'free';
+            user.subscriptionPlan = undefined;
+            user.subscriptionExpiry = undefined;
+            await user.save();
+        }
+
+        return NextResponse.json(user);
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
 export async function PUT(req: NextRequest) {
     try {
         // Auth check

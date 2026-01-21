@@ -36,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     const [newFolderName, setNewFolderName] = useState("");
 
     const { foldersUpdated, triggerFolderRefresh, storageUsage, setStorageUsage } = useUIStore();
+    const isAiPage = pathname === "/ai";
 
     React.useEffect(() => {
         fetchFolders();
@@ -158,103 +159,156 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
             {/* Header */}
             <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
-                    <Rocket className="w-5 h-5 text-white animate-pulse" />
-                </div>
-                <motion.span
-                    animate={{ opacity: isCollapsed ? 0 : 1 }}
-                    className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
-                >
-                    OrbitX
-                </motion.span>
+                {isAiPage ? (
+                    // AI Page Logo
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center gap-2"
+                    >
+                        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            <img src="/OrbitX AI.png" alt="OrbitX AI" className="w-full h-full object-cover" />
+                        </div>
+                        <motion.span
+                            animate={{ opacity: isCollapsed ? 0 : 1 }}
+                            className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
+                        >
+                            OrbitX AI
+                        </motion.span>
+                    </motion.div>
+                ) : (
+                    // Standard Logo
+                    <>
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
+                            <Rocket className="w-5 h-5 text-white animate-pulse" />
+                        </div>
+                        <motion.span
+                            animate={{ opacity: isCollapsed ? 0 : 1 }}
+                            className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
+                        >
+                            OrbitX
+                        </motion.span>
+                    </>
+                )}
             </div>
 
-            {/* Quick Actions */}
-            <div className="px-4 mb-6">
-                <Button
-                    variant="primary"
-                    className={cn("w-full justify-start gap-2 shadow-lg shadow-primary/20", isCollapsed && "justify-center px-0")}
-                    showRocket={!isCollapsed}
-                    onClick={() => router.push("/notes/new")}
-                >
-                    <Plus size={20} />
-                    {!isCollapsed && "New Note"}
-                </Button>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-4 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                <NavItem
-                    icon={<LayoutDashboard size={20} />}
-                    label="Dashboard"
-                    isCollapsed={isCollapsed}
-                    active={pathname === "/dashboard"}
-                    onClick={() => router.push("/dashboard")}
-                />
-                <NavItem
-                    icon={<FileText size={20} />}
-                    label="All Notes"
-                    isCollapsed={isCollapsed}
-                    active={pathname === "/notes"}
-                    onClick={() => router.push("/notes")}
-                />
-                <NavItem
-                    icon={<Star size={20} />}
-                    label="Favorites"
-                    isCollapsed={isCollapsed}
-                    active={pathname === "/favorites"}
-                    onClick={() => router.push("/favorites")}
-                />
-                <NavItem
-                    icon={<Tags size={20} />}
-                    label="Tags"
-                    isCollapsed={isCollapsed}
-                    active={pathname === "/tags"}
-                    onClick={() => router.push("/tags")}
-                />
-                <NavItem
-                    icon={<Trash2 size={20} />}
-                    label="Trash"
-                    isCollapsed={isCollapsed}
-                    active={pathname === "/trash"}
-                    onClick={() => router.push("/trash")}
-                />
-
-                <div className="my-4 border-t border-white/10" />
-
-                <div className="space-y-1">
+            {isAiPage ? (
+                // AI Sidebar Content
+                <div className="flex-1 overflow-y-auto px-4 space-y-4">
                     {!isCollapsed && (
-                        <div className="flex items-center justify-between px-2 mb-2 text-white/40">
-                            <p className="text-xs font-semibold uppercase">Folders</p>
-                            <Plus
-                                size={14}
-                                className="cursor-pointer hover:text-white transition-colors"
-                                onClick={() => setCreatingFolderParentId("root")}
-                            />
-                        </div>
+                        <div className="text-xs font-semibold uppercase text-white/40 mb-2 px-2">History</div>
                     )}
 
-                    {creatingFolderParentId === "root" && !isCollapsed && (
-                        <div className="px-2 py-1">
-                            <FolderCreationForm
-                                value={newFolderName}
-                                onChange={setNewFolderName}
-                                onSubmit={handleCreateFolder}
-                                onCancel={() => {
-                                    setCreatingFolderParentId(null);
-                                    setNewFolderName("");
-                                }}
-                            />
+                    <div className="space-y-1">
+                        {/* Placeholder History Items */}
+                        <div className="px-3 py-2 rounded-lg bg-white/5 text-sm text-white/70 truncate border-l-2 border-primary cursor-pointer hover:bg-white/10 transition-colors">
+                            Previous chat about React...
+                        </div>
+                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">
+                            Ideas for marketing...
+                        </div>
+                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">
+                            Meeting notes summary...
+                        </div>
+                    </div>
+
+                    {!isCollapsed && (
+                        <div className="mt-8 text-center text-xs text-white/20 px-4">
+                            Values generated by AI may be inaccurate.
                         </div>
                     )}
-
-                    {folders.map((folder) => renderFolder(folder))}
                 </div>
-            </nav>
+            ) : (
+                // Standard Sidebar Content
+                <>
+                    {/* Quick Actions */}
+                    <div className="px-4 mb-6">
+                        <Button
+                            variant="primary"
+                            className={cn("w-full justify-start gap-2 shadow-lg shadow-primary/20", isCollapsed && "justify-center px-0")}
+                            showRocket={!isCollapsed}
+                            onClick={() => router.push("/notes/new")}
+                        >
+                            <Plus size={20} />
+                            {!isCollapsed && "New Note"}
+                        </Button>
+                    </div>
 
-            {/* Footer & Storage */}
+                    {/* Navigation */}
+                    <nav className="flex-1 overflow-y-auto px-4 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        <NavItem
+                            icon={<LayoutDashboard size={20} />}
+                            label="Dashboard"
+                            isCollapsed={isCollapsed}
+                            active={pathname === "/dashboard"}
+                            onClick={() => router.push("/dashboard")}
+                        />
+                        <NavItem
+                            icon={<FileText size={20} />}
+                            label="All Notes"
+                            isCollapsed={isCollapsed}
+                            active={pathname === "/notes"}
+                            onClick={() => router.push("/notes")}
+                        />
+                        <NavItem
+                            icon={<Star size={20} />}
+                            label="Favorites"
+                            isCollapsed={isCollapsed}
+                            active={pathname === "/favorites"}
+                            onClick={() => router.push("/favorites")}
+                        />
+                        <NavItem
+                            icon={<Tags size={20} />}
+                            label="Tags"
+                            isCollapsed={isCollapsed}
+                            active={pathname === "/tags"}
+                            onClick={() => router.push("/tags")}
+                        />
+                        <NavItem
+                            icon={<Trash2 size={20} />}
+                            label="Trash"
+                            isCollapsed={isCollapsed}
+                            active={pathname === "/trash"}
+                            onClick={() => router.push("/trash")}
+                        />
+
+                        <div className="my-4 border-t border-white/10" />
+
+                        <div className="space-y-1">
+                            {!isCollapsed && (
+                                <div className="flex items-center justify-between px-2 mb-2 text-white/40">
+                                    <p className="text-xs font-semibold uppercase">Folders</p>
+                                    <Plus
+                                        size={14}
+                                        className="cursor-pointer hover:text-white transition-colors"
+                                        onClick={() => setCreatingFolderParentId("root")}
+                                    />
+                                </div>
+                            )}
+
+                            {creatingFolderParentId === "root" && !isCollapsed && (
+                                <div className="px-2 py-1">
+                                    <FolderCreationForm
+                                        value={newFolderName}
+                                        onChange={setNewFolderName}
+                                        onSubmit={handleCreateFolder}
+                                        onCancel={() => {
+                                            setCreatingFolderParentId(null);
+                                            setNewFolderName("");
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            {folders.map((folder) => renderFolder(folder))}
+                        </div>
+                    </nav>
+                </>
+            )}
+
+            {/* Footer & Storage - Keep for both but maybe simplified for AI? keeping same for consistency */}
             <div className="p-4 border-t border-white/10 space-y-4 bg-black/20">
-                {!isCollapsed && (
+                {!isCollapsed && !isAiPage && (
                     <div className="space-y-2">
                         <div className="flex justify-between text-xs text-white/60">
                             <span>Storage</span>
