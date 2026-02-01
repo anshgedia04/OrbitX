@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
         // Helper to build tree structure
         const buildTree = (folders: any[], parentId: string | null = null): any[] => {
             return folders
-                .filter((folder) => String(folder.parentFolder || null) === String(parentId))
+                .filter((folder) => {
+                    const folderParentId = folder.parentFolder ? String(folder.parentFolder) : null;
+                    return folderParentId === parentId;
+                })
                 .map((folder) => ({
                     ...folder.toObject(),
                     children: buildTree(folders, String(folder._id)),
@@ -76,6 +79,17 @@ export async function POST(req: NextRequest) {
 
         const { name, parentFolder, color, icon } = result.data;
 
+        // Check folder depth limit (max 3 levels: 0, 1, 2)
+        if (parentFolder) {
+            const depth = await getFolderDepth(parentFolder);
+            if (depth >= 2) {
+                return NextResponse.json(
+                    { error: "Maximum folder depth of 3 levels reached. Cannot create more subfolders." },
+                    { status: 400 }
+                );
+            }
+        }
+
         const newFolder = await Folder.create({
             name,
             parentFolder: parentFolder || undefined,
@@ -89,6 +103,19 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
+}
+
+// Helper to get folder depth
+async function getFolderDepth(folderId: string): Promise<number> {
+    let depth = 0;
+    let currentFolder = await Folder.findById(folderId);
+
+    while (currentFolder && currentFolder.parentFolder) {
+        depth++;
+        currentFolder = await Folder.findById(currentFolder.parentFolder);
+    }
+
+    return depth;
 }
 
 // Helper to construct path (simplified)

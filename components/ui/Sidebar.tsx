@@ -21,6 +21,7 @@ import { Button } from "./Button";
 import { useRouter, usePathname } from "next/navigation";
 import { useUIStore } from "@/store/use-ui-store";
 import { StorageLimitModal } from "./StorageLimitModal";
+import { useToast } from "./Toast";
 
 interface SidebarProps {
     className?: string;
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     const [newFolderName, setNewFolderName] = useState("");
 
     const { foldersUpdated, triggerFolderRefresh, storageUsage, setStorageUsage } = useUIStore();
+    const { showToast } = useToast();
     const isAiPage = pathname === "/ai";
 
     React.useEffect(() => {
@@ -80,17 +82,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                     parentFolder: creatingFolderParentId === "root" ? undefined : creatingFolderParentId
                 }),
             });
+
             if (res.ok) {
                 setNewFolderName("");
                 setCreatingFolderParentId(null);
                 fetchFolders();
+                showToast("Folder created successfully!", "success");
                 // If created in a folder, ensure it's expanded
                 if (creatingFolderParentId && creatingFolderParentId !== "root") {
                     setExpandedFolders(prev => prev.includes(creatingFolderParentId) ? prev : [...prev, creatingFolderParentId]);
                 }
+            } else {
+                const errorData = await res.json();
+                showToast(errorData.error || "Failed to create folder", "error");
+                setNewFolderName("");
+                setCreatingFolderParentId(null);
             }
         } catch (error) {
             console.error("Failed to create folder", error);
+            showToast("Failed to create folder", "error");
         }
     };
 
@@ -116,10 +126,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             isExpanded={expandedFolders.includes(folder._id)}
             onToggle={() => toggleFolder(folder._id)}
             onClick={() => router.push(`/folders/${folder._id}`)}
+            depth={level}
+            canAddSubfolder={level < 2}
             onAddSubFolder={(e: React.MouseEvent) => {
                 e.stopPropagation();
-                setCreatingFolderParentId(folder._id);
-                setExpandedFolders(prev => prev.includes(folder._id) ? prev : [...prev, folder._id]);
+                if (level < 2) {
+                    setCreatingFolderParentId(folder._id);
+                    setExpandedFolders(prev => prev.includes(folder._id) ? prev : [...prev, folder._id]);
+                }
             }}
         >
             {creatingFolderParentId === folder._id && (
@@ -384,7 +398,7 @@ const FolderCreationForm = ({ value, onChange, onSubmit, onCancel }: any) => (
     </form>
 );
 
-const FolderItem = ({ name, id, isCollapsed, isExpanded, onToggle, children, depth = 0, onClick, onAddSubFolder }: any) => {
+const FolderItem = ({ name, id, isCollapsed, isExpanded, onToggle, children, depth = 0, onClick, onAddSubFolder, canAddSubfolder = true }: any) => {
     const [isHovered, setIsHovered] = useState(false);
 
     if (isCollapsed) {
@@ -399,9 +413,9 @@ const FolderItem = ({ name, id, isCollapsed, isExpanded, onToggle, children, dep
         <div className="select-none">
             <div
                 className={cn(
-                    "group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-sm text-white/70 hover:text-white transition-colors relative pr-8",
-                    depth > 0 && "ml-4"
+                    "group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer text-sm text-white/70 hover:text-white transition-colors relative pr-8"
                 )}
+                style={{ marginLeft: `${depth * 16}px` }}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onClick={(e) => {
@@ -435,8 +449,8 @@ const FolderItem = ({ name, id, isCollapsed, isExpanded, onToggle, children, dep
                 <Folder size={16} className={cn("text-primary/70", (isExpanded || React.Children.count(children) > 0) && "text-primary")} />
                 <span className="truncate flex-1">{name}</span>
 
-                {/* Add Subfolder Button - Visible on Hover */}
-                {isHovered && (
+                {/* Add Subfolder Button - Visible on Hover and only if depth limit allows */}
+                {isHovered && canAddSubfolder && (
                     <div
                         className="interactive absolute right-2 opacity-100 p-1 hover:bg-white/20 rounded-full transition-all"
                         onClick={onAddSubFolder}

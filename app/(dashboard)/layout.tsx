@@ -118,7 +118,7 @@ function DashboardContent({
 
                 <FloatingActionButton
                     onClick={handleFabClick}
-                    variant={isAiPage ? "notebook" : "rocket"}
+                    variant={isAiPage ? "notebook" : "ai"}
                 />
             </div>
 

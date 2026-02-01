@@ -38,33 +38,9 @@ export async function GET(req: NextRequest) {
 
         const query: any = { owner: decoded.userId, isTrashed: false };
 
-        // Handle recursive folder filtering
+        // Filter by exact folder only (not including subfolders)
         if (folder) {
-            // 1. Fetch all folders for the user to build the tree/graph (efficient enough for typical usage)
-            // We import Folder here to avoid circular dependency issues if any, though imports relate to models usually fine.
-            // Using require or just using the imported Folder model if sure. 
-            // Note: Folder is filtered by owner.
-            const allUserFolders = await import("@/models/Folder").then(m => m.default.find({ owner: decoded.userId }).select('_id parentFolder'));
-
-            // 2. Find all descendants of the requested folder
-            const getDescendantIds = (rootIds: string[], allFolders: any[]) => {
-                let descendants: string[] = [...rootIds];
-                let queue = [...rootIds];
-
-                while (queue.length > 0) {
-                    const currentId = queue.shift();
-                    const children = allFolders.filter(f => String(f.parentFolder) === String(currentId));
-                    const childIds = children.map(c => String(c._id));
-                    descendants.push(...childIds);
-                    queue.push(...childIds);
-                }
-                return descendants;
-            };
-
-            const descendantIds = getDescendantIds([folder], allUserFolders);
-
-            // 3. Query notes in any of these folders
-            query.folder = { $in: descendantIds };
+            query.folder = folder;
         }
 
         if (tag) query.tags = tag;

@@ -113,6 +113,63 @@ export default function FolderPage() {
         router.push(`/notes/new?folder=${params.id}`);
     };
 
+    const handleEditNote = (id: string) => {
+        router.push(`/notes/${id}`);
+    };
+
+    const handleDeleteNote = async (id: string) => {
+        try {
+            // Optimistically remove from UI immediately
+            setNotes(prevNotes => prevNotes.filter(note => note._id !== id));
+
+            const res = await fetch(`/api/notes/${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                showToast("Note moved to trash", "success");
+            } else {
+                // If deletion failed, restore the note
+                showToast("Failed to delete note", "error");
+                const notesRes = await fetch(`/api/notes?folder=${params.id}`);
+                const notesData = await notesRes.json();
+                if (notesRes.ok) {
+                    setNotes(notesData.notes);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to delete note", error);
+            showToast("Failed to delete note", "error");
+            // Restore notes on error
+            const notesRes = await fetch(`/api/notes?folder=${params.id}`);
+            const notesData = await notesRes.json();
+            if (notesRes.ok) {
+                setNotes(notesData.notes);
+            }
+        }
+    };
+
+    const handleToggleFavorite = async (id: string) => {
+        try {
+            const note = notes.find(n => n._id === id);
+            const res = await fetch(`/api/notes/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isFavorite: !note?.isFavorite }),
+            });
+            if (res.ok) {
+                showToast(note?.isFavorite ? "Removed from favorites" : "Added to favorites", "success");
+                // Update local state
+                setNotes(notes.map(n => n._id === id ? { ...n, isFavorite: !n.isFavorite } : n));
+            } else {
+                showToast("Failed to update favorite", "error");
+            }
+        } catch (error) {
+            console.error("Failed to toggle favorite", error);
+            showToast("Failed to update favorite", "error");
+        }
+    };
+
     const handleDeleteFolder = async () => {
         setIsDeleteModalOpen(false);
 
@@ -236,9 +293,10 @@ export default function FolderPage() {
                             key={note._id}
                             note={note}
                             viewMode={viewMode}
-                            onEdit={(id) => showToast(`Edit note ${id}`, "info")}
-                            onDelete={(id) => showToast(`Delete note ${id}`, "error")}
-                            onToggleFavorite={(id) => showToast(`Toggle favorite ${id}`, "success")}
+                            onClick={(id) => router.push(`/notes/${id}`)}
+                            onEdit={handleEditNote}
+                            onDelete={handleDeleteNote}
+                            onToggleFavorite={handleToggleFavorite}
                         />
                     ))}
                 </div>
