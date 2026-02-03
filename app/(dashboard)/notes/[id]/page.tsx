@@ -91,7 +91,17 @@ export default function NotePage() {
     };
 
     const handlePrint = () => {
+        // Set document title for PDF filename
+        const originalTitle = document.title;
+        document.title = `${note.title} - OrbitX Notes`;
+
+        // Trigger print
         window.print();
+
+        // Restore original title
+        setTimeout(() => {
+            document.title = originalTitle;
+        }, 100);
     };
 
     if (isLoading) {

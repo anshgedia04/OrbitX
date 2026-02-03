@@ -132,3 +132,316 @@ body {
 .markdown-preview hr {
   @apply border-white/10 my-8;
 }
+
+/* Print Styles for PDF Generation */
+@media print {
+
+  /* Reset page layout */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  /* Body and background */
+  body {
+    background: white !important;
+    color: #000 !important;
+  }
+
+  /* Hide non-printable elements */
+  button,
+  nav,
+  .sidebar,
+  [class*="TopBar"],
+  [class*="Sidebar"],
+  [class*="FloatingActionButton"] {
+    display: none !important;
+  }
+
+  /* Main container */
+  .max-w-4xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Remove all height and overflow constraints */
+  body,
+  html,
+  #__next,
+  main,
+  div {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Page background */
+  div[class*="bg-[#0f111a]"],
+  div[class*="bg-[#"] {
+    background: white !important;
+  }
+
+  /* Headings */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #000 !important;
+    page-break-after: avoid;
+    font-weight: bold;
+  }
+
+  h1 {
+    font-size: 28pt !important;
+    margin-bottom: 12pt;
+    border-bottom: 2px solid #333 !important;
+    padding-bottom: 8pt;
+  }
+
+  h2 {
+    font-size: 22pt !important;
+    margin-top: 16pt;
+    margin-bottom: 10pt;
+  }
+
+  h3 {
+    font-size: 18pt !important;
+    margin-top: 14pt;
+    margin-bottom: 8pt;
+  }
+
+  /* Paragraphs and text */
+  p,
+  div,
+  span,
+  li {
+    color: #000 !important;
+    line-height: 1.6;
+  }
+
+  /* Links */
+  a {
+    color: #0066cc !important;
+    text-decoration: underline;
+  }
+
+  /* Tags */
+  span[class*="bg-primary"] {
+    background: #e0e0e0 !important;
+    color: #000 !important;
+    border: 1px solid #999 !important;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+    display: inline-block;
+    margin-right: 4pt;
+  }
+
+  /* Metadata section */
+  div[class*="border-b"] {
+    border-color: #ccc !important;
+    padding-bottom: 12pt;
+    margin-bottom: 16pt;
+  }
+
+  /* Metadata text */
+  div[class*="text-white/40"],
+  span[class*="text-white/40"] {
+    color: #666 !important;
+    font-size: 10pt;
+  }
+
+  /* Markdown content */
+  .markdown-preview {
+    color: #000 !important;
+  }
+
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    color: #000 !important;
+    border-color: #333 !important;
+  }
+
+  .markdown-preview p {
+    color: #000 !important;
+    margin-top: 8pt;
+    margin-bottom: 8pt;
+  }
+
+  .markdown-preview a {
+    color: #0066cc !important;
+  }
+
+  .markdown-preview ul,
+  .markdown-preview ol {
+    color: #000 !important;
+    margin-left: 20pt;
+  }
+
+  .markdown-preview li {
+    margin-top: 4pt;
+    color: #000 !important;
+  }
+
+  /* Code blocks */
+  .markdown-preview code {
+    background: #f5f5f5 !important;
+    color: #000 !important;
+    border: 1px solid #ddd !important;
+    padding: 2pt 4pt;
+    border-radius: 3pt;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+  }
+
+  .markdown-preview pre {
+    background: #f8f8f8 !important;
+    border: 1px solid #ccc !important;
+    padding: 10pt;
+    border-radius: 4pt;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+
+  .markdown-preview pre code {
+    background: transparent !important;
+    border: none !important;
+    color: #000 !important;
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+
+  /* Tables */
+  .markdown-preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12pt 0;
+    page-break-inside: auto;
+  }
+
+  .markdown-preview th {
+    background: #f0f0f0 !important;
+    color: #000 !important;
+    border: 1px solid #999 !important;
+    padding: 6pt 8pt;
+    font-weight: bold;
+  }
+
+  .markdown-preview td {
+    background: white !important;
+    color: #000 !important;
+    border: 1px solid #ccc !important;
+    padding: 6pt 8pt;
+  }
+
+  /* Blockquotes */
+  .markdown-preview blockquote {
+    border-left: 4px solid #666 !important;
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    padding: 8pt 12pt;
+    margin: 12pt 0;
+    page-break-inside: auto;
+  }
+
+  /* Images */
+  .markdown-preview img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+  }
+
+  /* Horizontal rules */
+  .markdown-preview hr {
+    border: none;
+    border-top: 1px solid #999 !important;
+    margin: 16pt 0;
+  }
+
+  /* Code editor (Monaco) */
+  div[class*="monaco-editor"],
+  div[class*="bg-[#1e1e1e]"] {
+    background: #f8f8f8 !important;
+    border: 1px solid #ccc !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  div[class*="monaco-editor"] * {
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  /* Allow Monaco editor content to flow across pages */
+  div[class*="monaco-editor"] .view-lines,
+  div[class*="monaco-editor"] .view-line {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Plain text content */
+  div[class*="whitespace-pre-wrap"] {
+    color: #000 !important;
+    font-family: 'Georgia', serif;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  /* Avoid page breaks */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    page-break-after: avoid;
+  }
+
+  pre,
+  blockquote,
+  table,
+  img {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure proper spacing */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Print title */
+  .print-title {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #000 !important;
+    margin-bottom: 16pt;
+  }
+
+  /* Print metadata */
+  .print-metadata {
+    font-size: 10pt;
+    color: #666 !important;
+    margin-bottom: 20pt;
+    padding-bottom: 12pt;
+    border-bottom: 1px solid #ccc;
+  }
+}
