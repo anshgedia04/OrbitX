@@ -5,11 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Search, FileText, Folder, Tag, Filter } from "lucide-react";
 import { NoteCard } from "@/components/notes/NoteCard";
 import { Button } from "@/components/ui/Button";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 
 export default function SearchPage() {
     return (
-        <Suspense fallback={<div className="h-full flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
+        <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader size="lg" /></div>}>
             <SearchContent />
         </Suspense>
     );
@@ -97,7 +97,7 @@ function SearchContent() {
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }

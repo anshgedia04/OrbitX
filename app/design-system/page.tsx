@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
@@ -52,7 +52,7 @@ const DemoContent = () => {
                                 <p className="text-white/60">Content goes here.</p>
                             </Card>
                             <Card className="flex items-center justify-center min-h-[150px]">
-                                <LoadingSpinner />
+                                <Loader />
                             </Card>
                         </div>
                     </section>

@@ -5,6 +5,7 @@ import { Search, Bell, User, Menu } from "lucide-react";
 import { Button } from "./Button";
 import { SearchModal } from "@/components/search/SearchModal";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface TopBarProps {
     onMenuClick?: () => void;
@@ -12,6 +13,7 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,12 +69,20 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
 
                     <div className="flex items-center gap-3 pl-2 cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                         <div className="text-right hidden sm:block">
-                            <div className="text-sm font-medium text-white">John Doe</div>
-                            <div className="text-xs text-white/50">Pro Plan</div>
+                            <div className="text-sm font-medium text-white">{user?.name || 'User'}</div>
+                            <div className="text-xs text-white/50">{user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</div>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary p-[1px]">
-                            <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center text-xs font-bold text-white">
-                                JD
+                            <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center text-xs font-bold text-white overflow-hidden">
+                                {user?.avatar ? (
+                                    <img
+                                        src={user.avatar}
+                                        alt={user.name || 'User'}
+                                        className="w-full h-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    <span>{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+                                )}
                             </div>
                         </div>
                     </div>

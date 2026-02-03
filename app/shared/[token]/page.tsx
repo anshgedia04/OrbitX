@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Editor from "@monaco-editor/react";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, AlertTriangle, Rocket } from "lucide-react";
 import Link from "next/link";
@@ -42,7 +42,7 @@ export default function SharedNotePage() {
     if (isLoading) {
         return (
             <div className="h-screen w-full bg-[#0f111a] flex items-center justify-center text-white">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }

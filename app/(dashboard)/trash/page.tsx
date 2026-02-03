@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Trash2, RotateCcw, AlertTriangle, Folder, FileText, Loader2 } from "lucide-react";
+import { Trash2, RotateCcw, AlertTriangle, Folder, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useUIStore } from "@/store/use-ui-store";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { format } from "date-fns";
 import { Modal } from "@/components/ui/Modal";
 
@@ -108,7 +108,7 @@ export default function TrashPage() {
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }
@@ -166,7 +166,7 @@ export default function TrashPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button size="sm" variant="ghost" onClick={() => handleRestore(folder._id, "folder")} title="Restore" disabled={restoringId === folder._id}>
-                                                {restoringId === folder._id ? <Loader2 size={16} className="animate-spin text-primary" /> : <RotateCcw size={16} />}
+                                                {restoringId === folder._id ? <Loader size="sm" /> : <RotateCcw size={16} />}
                                             </Button>
                                             <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(folder._id, "folder")} className="text-red-400 hover:text-red-300" title="Delete Forever">
                                                 <Trash2 size={16} />
@@ -197,7 +197,7 @@ export default function TrashPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button size="sm" variant="ghost" onClick={() => handleRestore(note._id, "note")} title="Restore" disabled={restoringId === note._id}>
-                                                {restoringId === note._id ? <Loader2 size={16} className="animate-spin text-primary" /> : <RotateCcw size={16} />}
+                                                {restoringId === note._id ? <Loader size="sm" /> : <RotateCcw size={16} />}
                                             </Button>
                                             <Button size="sm" variant="ghost" onClick={() => handlePermanentDelete(note._id, "note")} className="text-red-400 hover:text-red-300" title="Delete Forever">
                                                 <Trash2 size={16} />

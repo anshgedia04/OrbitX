@@ -22,6 +22,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useUIStore } from "@/store/use-ui-store";
 import { StorageLimitModal } from "./StorageLimitModal";
 import { useToast } from "./Toast";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface SidebarProps {
     className?: string;
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
     const { foldersUpdated, triggerFolderRefresh, storageUsage, setStorageUsage } = useUIStore();
     const { showToast } = useToast();
+    const { user } = useAuth();
     const isAiPage = pathname === "/ai";
 
     React.useEffect(() => {
@@ -344,13 +346,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 )}
 
                 <div className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-xs font-bold ring-2 ring-white/10">
-                        JD
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-xs font-bold ring-2 ring-white/10 overflow-hidden">
+                        {user?.avatar ? (
+                            <img
+                                src={user.avatar}
+                                alt={user.name || 'User'}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <span>{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+                        )}
                     </div>
                     {!isCollapsed && (
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-sm font-medium truncate">John Doe</p>
-                            <p className="text-xs text-white/50 truncate">Pro Plan</p>
+                            <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
+                            <p className="text-xs text-white/50 truncate">{user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
                         </div>
                     )}
                     {!isCollapsed && (

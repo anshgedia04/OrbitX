@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { NoteEditor } from "@/components/editor/NoteEditor";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 
 export default function EditNotePage() {
     const params = useParams();
@@ -36,7 +36,7 @@ export default function EditNotePage() {
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }

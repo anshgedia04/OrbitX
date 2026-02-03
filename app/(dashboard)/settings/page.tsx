@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { User, Settings, Shield, HardDrive, Save, LogOut, Trash2, Download, Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -172,8 +171,8 @@ export default function SettingsPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === tab.id
-                                    ? "bg-primary text-white"
-                                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                                ? "bg-primary text-white"
+                                : "text-white/60 hover:bg-white/5 hover:text-white"
                                 }`}
                         >
                             <tab.icon size={18} />
@@ -189,8 +188,16 @@ export default function SettingsPage() {
                             <h2 className="text-xl font-semibold text-white mb-4">Profile Information</h2>
 
                             <div className="flex items-center gap-4 mb-6">
-                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-2xl font-bold text-white">
-                                    {profileForm.name.charAt(0).toUpperCase()}
+                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-2xl font-bold text-white overflow-hidden">
+                                    {user?.avatar ? (
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.name || 'User'}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span>{profileForm.name.charAt(0).toUpperCase() || 'U'}</span>
+                                    )}
                                 </div>
                                 <Button type="button" variant="secondary" size="sm">Change Avatar</Button>
                             </div>
@@ -242,8 +249,8 @@ export default function SettingsPage() {
                                                 type="button"
                                                 onClick={() => setPreferencesForm({ ...preferencesForm, theme: option.value })}
                                                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${preferencesForm.theme === option.value
-                                                        ? "bg-primary/20 border-primary text-white"
-                                                        : "bg-black/20 border-white/10 text-white/60 hover:bg-white/5"
+                                                    ? "bg-primary/20 border-primary text-white"
+                                                    : "bg-black/20 border-white/10 text-white/60 hover:bg-white/5"
                                                     }`}
                                             >
                                                 <option.icon size={24} />

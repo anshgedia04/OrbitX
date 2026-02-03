@@ -2,8 +2,8 @@
 
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { Loader } from "@/components/ui/Loader";
 
 function GoogleCallbackContent() {
     const router = useRouter();
@@ -49,7 +49,7 @@ function GoogleCallbackContent() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <Loader size="lg" />
             <p className="mt-4 text-white/50">Completing authentication...</p>
         </div>
     );

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Star, LayoutGrid, List as ListIcon } from "lucide-react";
 import { NoteCard } from "@/components/notes/NoteCard";
 import { useToast } from "@/components/ui/Toast";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { useUIStore } from "@/store/use-ui-store";
 
 export default function FavoritesPage() {
@@ -83,7 +83,7 @@ export default function FavoritesPage() {
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }

@@ -22,7 +22,7 @@ import {
     Check
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { useToast } from "@/components/ui/Toast";
 import { RelatedNotes } from "@/components/notes/RelatedNotes";
 import { cn } from "@/lib/utils";
@@ -107,7 +107,7 @@ export default function NotePage() {
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center">
-                <LoadingSpinner size="lg" />
+                <Loader size="lg" />
             </div>
         );
     }

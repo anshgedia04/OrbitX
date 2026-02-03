@@ -6,7 +6,7 @@ import * as Diff from "diff";
 import { Clock, RotateCcw, X, ArrowLeft, ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader } from "@/components/ui/Loader";
 import { useToast } from "@/components/ui/Toast";
 
 interface Version {
@@ -109,7 +109,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                 <div className="w-1/3 border-r border-white/10 pr-4 overflow-y-auto custom-scrollbar">
                     {isLoading ? (
                         <div className="flex justify-center py-8">
-                            <LoadingSpinner size="sm" />
+                            <Loader size="sm" />
                         </div>
                     ) : versions.length === 0 ? (
                         <div className="text-center text-white/40 py-8">

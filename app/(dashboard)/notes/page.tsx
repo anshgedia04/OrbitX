@@ -7,14 +7,14 @@ import {
     Search,
     Grid,
     List,
-    Plus,
-    Loader2
+    Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { NoteCard } from "@/components/notes/NoteCard";
 import { useUIStore } from "@/store/use-ui-store";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/components/ui/Toast";
+import { Loader } from "@/components/ui/Loader";
 
 export default function AllNotesPage() {
     const router = useRouter();
@@ -118,7 +118,7 @@ export default function AllNotesPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <Loader size="md" />
             </div>
         );
     }

@@ -5,11 +5,11 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Send, Bot, User, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { PegTopLoader } from "@/components/ui/PegTopLoader";
+import { Loader } from "@/components/ui/Loader";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import "./markdown-styles.css";
@@ -35,7 +35,7 @@ export default function AIPage() {
     if (isAuthLoading || (user && user.subscriptionStatus !== 'pro')) {
         return (
             <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
-                <Loader2 size={40} className="animate-spin text-primary" />
+                <Loader size="lg" />
             </div>
         );
     }
@@ -234,7 +234,7 @@ export default function AIPage() {
                                 <Wand2 size={20} className="text-white" />
                             </div>
                             <div className="flex items-center">
-                                <PegTopLoader />
+                                <Loader size="md" />
                             </div>
                         </div>
                     )}
@@ -263,7 +263,7 @@ export default function AIPage() {
                             className="h-[58px] w-[58px] rounded-xl !p-0 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20"
                             showRocket={false}
                         >
-                            {isLoading ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />}
+                            {isLoading ? <Loader size="sm" /> : <Send size={24} />}
                         </Button>
                     </div>
                     <div className="text-center mt-3">
