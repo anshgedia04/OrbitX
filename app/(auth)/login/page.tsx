@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LogIn, Github, Mail } from "lucide-react";
+import { LogIn, Github } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -124,7 +125,7 @@ export default function LoginPage() {
                 <Button
                     variant="ghost"
                     className="w-full"
-                    leftIcon={<Mail size={18} />}
+                    leftIcon={<FcGoogle size={18} />}
                     onClick={() => window.location.href = "/api/auth/google"}
                 >
                     Google
