@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+
+// Force dynamic rendering to prevent build-time errors with AuthProvider
+export const dynamic = 'force-dynamic';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
