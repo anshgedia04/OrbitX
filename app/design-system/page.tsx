@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-
-// Force dynamic rendering to prevent build-time errors with AuthProvider
-export const dynamic = 'force-dynamic';
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -12,6 +9,7 @@ import { Loader } from "@/components/ui/Loader";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const DemoContent = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,8 +81,10 @@ const DemoContent = () => {
 
 export default function DesignSystemPage() {
     return (
-        <ToastProvider>
-            <DemoContent />
-        </ToastProvider>
+        <AuthProvider>
+            <ToastProvider>
+                <DemoContent />
+            </ToastProvider>
+        </AuthProvider>
     );
 }
