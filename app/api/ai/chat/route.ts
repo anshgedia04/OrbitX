@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeminiClient, GEMINI_CONFIG, isQuotaError } from "@/lib/gemini-config";
+import { sarvamChat } from "@/lib/sarvam-config";
 
 /* ---------- RATE LIMITING ---------- */
 const RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds (more reasonable)
@@ -99,8 +100,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Continue with AI generation
-    const genAI = getGeminiClient();
+    // 3. Route request based on selected model
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ||
       req.headers.get("x-real-ip") ||
@@ -113,50 +113,108 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { messages } = await req.json();
+    // ── Model definitions ──────────────────────────────────────────────
+    // provider: which API to call. Add a matching handler branch below for each.
+    const MODEL_REGISTRY: Record<string, { provider: string; apiModel: string; displayName: string }> = {
+      "gemini-3.1-pro": { provider: "gemini", apiModel: "gemini-2.5-flash", displayName: "Gemini 3.1 Pro" },
+      "orbitx-ai": { provider: "sarvam", apiModel: "sarvam-m", displayName: "OrbitX AI" },
+      // Future integrations:
+      // "gpt-4o":        { provider: "openai",    apiModel: "gpt-4o", displayName: "GPT-4o"            },
+      // "claude-sonnet": { provider: "anthropic", apiModel: "...",    displayName: "Claude Sonnet 4.5" },
+    };
+
+    const { messages, model: requestedModel } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     const lastUserMessage = messages[messages.length - 1]?.content;
-    if (!lastUserMessage || typeof lastUserMessage !== 'string') {
+    if (!lastUserMessage || typeof lastUserMessage !== "string") {
       return NextResponse.json({ error: "Invalid message content" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_CONFIG.model,
-      generationConfig: GEMINI_CONFIG.generationConfig,
+    const modelConfig = requestedModel ? MODEL_REGISTRY[requestedModel] : null;
+
+    // ── Route to the correct provider ──────────────────────────────────
+    if (!modelConfig) {
+      // Model is not integrated yet (e.g. OrbitX AI, future models)
+      const modelLabel = requestedModel ?? "selected model";
+      return NextResponse.json({
+        message: `**${modelLabel}** is not yet integrated. Please switch to **Gemini 3.1 Pro** to chat right now — more models are coming soon! 🚀`,
+      });
+    }
+
+    // ── Gemini provider ────────────────────────────────────────────────
+    if (modelConfig.provider === "gemini") {
+      const genAI = getGeminiClient();
+      const model = genAI.getGenerativeModel({
+        model: modelConfig.apiModel,
+        generationConfig: GEMINI_CONFIG.generationConfig,
+      });
+      const response = await generateWithRetry(model, lastUserMessage);
+      return NextResponse.json({ message: response });
+    }
+
+    // ── Sarvam AI provider (OrbitX AI) ────────────────────────────────
+    if (modelConfig.provider === "sarvam") {
+      // Build OpenAI-compatible multi-turn message history
+      const sarvamMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        {
+          role: "system",
+          content:
+            "You are OrbitX AI, a smart and helpful AI assistant built into the OrbitX Notes app. " +
+            "You help users with their notes, ideas, writing, coding, and general questions. " +
+            "Be concise, clear, and use markdown formatting where helpful. " +
+            "You are powered by advanced AI and have deep knowledge of Indian languages and culture.",
+        },
+        // Map full conversation history (skip the static welcome message)
+        ...messages
+          .filter((m: any) => m.id !== "welcome")
+          .map((m: any) => ({
+            role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+            content: m.content as string,
+          })),
+      ];
+
+      const response = await sarvamChat({
+        messages: sarvamMessages,
+        temperature: 0.2,   // wiki_grounding factual mode (recommended in docs)
+        top_p: 1.0,
+        max_tokens: 2048,
+        wiki_grounding: true,  // RAG from Wikipedia — don't combine with reasoning_effort
+      });
+      return NextResponse.json({ message: response });
+    }
+
+    // ── Fallback: provider registered but handler not yet implemented ──
+    return NextResponse.json({
+      message: `**${modelConfig.displayName}** support is coming soon. Stay tuned! 🛸`,
     });
-
-    const response = await generateWithRetry(model, lastUserMessage);
-
-    return NextResponse.json({ message: response });
 
   } catch (error: any) {
-    console.error("Gemini API Error:", {
-      message: error.message,
-      status: error.status,
-      details: error.details || error.toString()
-    });
+    const errorMsg: string = error?.message ?? "Unknown error";
+    console.error("[AI Chat] Error:", errorMsg, error);
 
-    // Handle specific error types
-    if (isQuotaError(error)) {
+    // Quota / rate limit
+    if (isQuotaError(error) || errorMsg.includes("quota") || errorMsg.includes("429")) {
       return NextResponse.json(
         { error: "AI quota exhausted. Please try again in a few minutes." },
         { status: 429 }
       );
     }
 
-    if (error.message?.includes("API key")) {
+    // API key / auth issues
+    if (errorMsg.includes("API key") || errorMsg.includes("api-subscription-key") ||
+      errorMsg.includes("403") || errorMsg.includes("invalid_api_key")) {
       return NextResponse.json(
-        { error: "API configuration error. Please contact support." },
+        { error: "API authentication failed. Please check the API key configuration." },
         { status: 500 }
       );
     }
 
-    // Generic error
+    // Surface the real error message so it's visible in the UI for debugging
     return NextResponse.json(
-      { error: "Failed to generate response. Please try again." },
+      { error: `AI Error: ${errorMsg}` },
       { status: 500 }
     );
   }

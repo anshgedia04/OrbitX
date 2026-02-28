@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { FileText, Shield, Zap, Rocket } from 'lucide-react';
+import { StarBackground } from '@/components/ui/StarBackground';
 
 export default function LandingPage() {
     return (
         <div className="min-h-screen text-white selection:bg-purple-500/30 font-sans overflow-hidden relative">
+       
+            <StarBackground />
 
             {/* Navigation */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
@@ -32,7 +35,7 @@ export default function LandingPage() {
             </nav>
 
             {/* Hero Section */}
-            <main className="relative z-10 pt-32 pb-16 px-6">
+            <main className="relative pt-32 pb-16 px-6">
                 <div className="max-w-4xl mx-auto text-center space-y-8">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-purple-400 mb-4 animate-fade-in">
                         <span className="relative flex h-2 w-2">
@@ -99,7 +102,7 @@ export default function LandingPage() {
             </main>
 
             {/* Footer */}
-            <footer className="relative z-10 border-t border-white/10 bg-black/40 backdrop-blur-xl py-12 mt-20">
+            <footer className="border-t border-white/10 bg-black py-12 mt-20">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <p className="text-white/40 text-sm">
                         © {new Date().getFullYear()} OrbitX Notes. All rights reserved.
