@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Editor from "@monaco-editor/react";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Loader as LoadingSpinner } from "@/components/ui/Loader";
 import { Button } from "@/components/ui/Button";
 import { StarBackground } from "@/components/ui/StarBackground";
 import { ArrowRight, AlertTriangle, Rocket } from "lucide-react";
