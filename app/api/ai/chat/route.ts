@@ -165,7 +165,8 @@ export async function POST(req: NextRequest) {
             "You are OrbitX AI, a smart and helpful AI assistant built into the OrbitX Notes app. " +
             "You help users with their notes, ideas, writing, coding, and general questions. " +
             "Be concise, clear, and use markdown formatting where helpful. " +
-            "You are powered by advanced AI and have deep knowledge of Indian languages and culture.",
+            "You are powered by advanced AI and have deep knowledge of Indian languages and culture." +
+            "give answers in indian tone and style"
         },
         // Map full conversation history (skip the static welcome message)
         ...messages
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.2,   // wiki_grounding factual mode (recommended in docs)
         top_p: 1.0,
         max_tokens: 2048,
-        wiki_grounding: true,  // RAG from Wikipedia — don't combine with reasoning_effort
+        wiki_grounding: false,  // RAG from Wikipedia — don't combine with reasoning_effort
       });
       return NextResponse.json({ message: response });
     }
