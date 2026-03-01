@@ -10,6 +10,7 @@ import { ShortcutsModal } from "@/components/ui/ShortcutsModal";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
+import { Home } from "lucide-react";
 
 export default function DashboardLayout({
     children,
@@ -116,10 +117,13 @@ function DashboardContent({
                     </motion.div>
                 </main>
 
-                <FloatingActionButton
-                    onClick={handleFabClick}
-                    variant={isAiPage ? "notebook" : "ai"}
-                />
+                {/* FAB — only shown on non-AI pages */}
+                {!isAiPage && (
+                    <FloatingActionButton
+                        onClick={handleFabClick}
+                        variant="ai"
+                    />
+                )}
             </div>
 
             <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />

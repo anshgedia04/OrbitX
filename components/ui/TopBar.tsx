@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Bell, User, Menu } from "lucide-react";
+import { Search, Bell, User, Menu, Home } from "lucide-react";
 import { Button } from "./Button";
 import { SearchModal } from "@/components/search/SearchModal";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import Link from "next/link";
 
 interface TopBarProps {
     onMenuClick?: () => void;
@@ -34,6 +35,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
                         <Menu className="w-5 h-5" />
                     </Button>
 
+
                     {/* Search Trigger */}
                     <div
                         onClick={() => setIsSearchOpen(true)}
@@ -59,6 +61,16 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
                 {/* Actions */}
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
+                        {/* Home */}
+                        <Link
+                            href="/dashboard"
+                            className="p-2 text-white/50 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-medium"
+                            title="Home"
+                        >
+                            <Home className="w-5 h-5" />
+                            <span className="hidden sm:inline">Home</span>
+                        </Link>
+
                         <button className="p-2 text-white/50 hover:text-white transition-colors relative">
                             <Bell size={20} />
                             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0f111a]" />

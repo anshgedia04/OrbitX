@@ -23,12 +23,13 @@ interface Message {
 }
 
 const AI_MODELS = [
-    { id: "orbitx-ai", label: "OrbitX AI", badge: "Native", color: "from-cyan-400 to-blue-500", disabled: false },
+    { id: "orbitx-ai", label: "OrbitX AI", badge: "Native Model", color: "from-cyan-400 to-blue-500", disabled: false },
     { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro", badge: "Default", color: "from-violet-500 to-purple-600", disabled: false },
+    { id: "nvidia-nemotron", label: "Nvidia Nemotron", badge: "Technology", color: "from-green-400 to-emerald-500", disabled: false },
+    { id: "arcee-ai", label: "Arcee AI", badge: "#5 in Technology", color: "from-pink-400 to-rose-500", disabled: false },
+    { id: "glm-4.5-air", label: "GLM 4.5 Air", badge: "Science & History", color: "from-yellow-400 to-orange-500", disabled: false },
+    { id: "step-3.5-flash", label: "Step 3.5 Flash", badge: "Tech & Finance", color: "from-blue-400 to-indigo-500", disabled: false },
     { id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5", badge: "Coming Soon", color: "from-orange-400 to-amber-500", disabled: true },
-    // Uncomment when ready:
-    // { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", badge: "Fast",    color: "from-sky-500 to-cyan-500",     disabled: false },
-    // { id: "gpt-4o",           label: "GPT-4o",           badge: "OpenAI",  color: "from-emerald-500 to-teal-500", disabled: false },
 ];
 
 export default function AIPage() {
@@ -54,7 +55,7 @@ export default function AIPage() {
         {
             id: "welcome",
             role: "assistant",
-            content: "Hello! I'm OrbitX AI. How can I help you with your notes today?",
+            content: "How can I help you with your notes today?",
             timestamp: new Date()
         }
     ]);
@@ -142,33 +143,34 @@ export default function AIPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex flex-col max-w-5xl mx-auto">
+        <div className="h-[calc(100vh-8rem)] flex flex-col max-w-5xl mx-auto px-2 sm:px-0">
             {/* Chat Container */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Messages Area */}
                 <div
                     ref={scrollRef}
-                    className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+                    className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
                 >
                     {messages.map((msg) => (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             key={msg.id}
-                            className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                            className={`flex gap-2 sm:gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                         >
                             <div className={`
-                                w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg
+                                w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg
                                 ${msg.role === "assistant"
                                     ? "bg-gradient-to-br from-primary to-secondary shadow-primary/20"
                                     : "bg-white/10"
                                 }
                             `}>
-                                {msg.role === "assistant" ? <Wand2 size={20} className="text-white" /> : <User size={20} className="text-white/70" />}
+                                {msg.role === "assistant" ? <Wand2 size={16} className="text-white sm:hidden" /> : <User size={16} className="text-white/70 sm:hidden" />}
+                                {msg.role === "assistant" ? <Wand2 size={20} className="text-white hidden sm:block" /> : <User size={20} className="text-white/70 hidden sm:block" />}
                             </div>
 
                             <div className={`
-                                max-w-[80%] rounded-2xl px-6 py-4 text-base leading-relaxed shadow-lg
+                                max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base leading-relaxed shadow-lg
                                 ${msg.role === "assistant"
                                     ? "bg-white/5 border border-white/10 text-white/90 rounded-tl-none ai-message-content"
                                     : "bg-primary text-white rounded-tr-none shadow-primary/10"
@@ -267,7 +269,7 @@ export default function AIPage() {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-0 pt-4">
+                <div className="p-0 pt-3 sm:pt-4">
                     <div className="relative flex items-center gap-3">
                         <div className="relative flex-1 group">
                             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -279,7 +281,7 @@ export default function AIPage() {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Ask anything..."
-                                    className="flex-1 bg-transparent pl-5 pr-4 py-4 text-base text-white focus:outline-none placeholder:text-white/20"
+                                    className="flex-1 bg-transparent pl-3 sm:pl-5 pr-2 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base text-white focus:outline-none placeholder:text-white/20"
                                     autoFocus
                                 />
 
@@ -293,7 +295,7 @@ export default function AIPage() {
                                         type="button"
                                         onClick={() => setModelOpen(o => !o)}
                                         className={`
-                                            flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold
+                                            flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-semibold
                                             transition-all duration-200 select-none
                                             ${modelOpen
                                                 ? "bg-white/10 text-white"
@@ -333,8 +335,12 @@ export default function AIPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Model options */}
-                                                <div className="p-2 flex flex-col gap-1">
+                                                {/* Model options — max 4 visible, scroll for more */}
+                                                <div className="p-2 flex flex-col gap-1 max-h-[204px] overflow-y-auto
+                                                    scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10
+                                                    hover:scrollbar-thumb-white/20"
+                                                    style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.12) transparent' }}
+                                                >
                                                     {AI_MODELS.map((m) => {
                                                         const isActive = m.id === selectedModel;
                                                         return (
@@ -403,10 +409,11 @@ export default function AIPage() {
                         <Button
                             onClick={handleSend}
                             disabled={!input.trim() || isLoading}
-                            className="h-[58px] w-[58px] rounded-xl !p-0 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20"
+                            className="h-[48px] w-[48px] sm:h-[58px] sm:w-[58px] rounded-xl !p-0 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20"
                             showRocket={false}
                         >
-                            {isLoading ? <Loader size="sm" /> : <Send size={24} />}
+                            {isLoading ? <Loader size="sm" /> : <Send size={20} className="sm:hidden" />}
+                            {!isLoading && <Send size={24} className="hidden sm:block" />}
                         </Button>
                     </div>
                     <div className="text-center mt-3">
