@@ -1,2 +1,17 @@
 /* AI Chat Markdown Styles */
 /* Styles are now handled via Tailwind CSS in page.tsx components */
+
+/* Ensure math formulas don't overflow the chat bubbles */
+.katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
+}
+
+.katex {
+    max-width: 100%;
+    white-space: normal !important;
+    /* Force wrapping for inline math */
+    word-break: break-word;
+}

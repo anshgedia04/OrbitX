@@ -1,50 +1,58 @@
 /**
- * OpenRouter AI client — supports multiple API keys, one per model.
- * Endpoint: https://openrouter.ai/api/v1/chat/completions
- * Auth:     Authorization: Bearer <apiKey>
+ * GitHub Models client — OpenAI-compatible endpoint hosted by Azure.
+ * Endpoint: https://models.inference.ai.azure.com/chat/completions
+ * Auth:     Authorization: Bearer <github_personal_access_token>
+ *
+ * Each model must provide its OWN token via `apiKey`.
+ * Use getGithubModelKey(envName) to resolve the right token per model.
  */
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const GITHUB_MODELS_URL = "https://models.inference.ai.azure.com/chat/completions";
 
-export interface OpenRouterMessage {
+export interface GithubModelMessage {
     role: "system" | "user" | "assistant";
     content: string;
 }
 
-export interface OpenRouterChatOptions {
+export interface GithubModelChatOptions {
     model: string;
-    messages: OpenRouterMessage[];
+    messages: GithubModelMessage[];
     temperature?: number;
     max_tokens?: number;
-    /** Explicit API key — pass the model-specific key from env */
+    /** The GitHub PAT for THIS specific model — never shared across models */
     apiKey: string;
 }
 
 /**
- * Read an OpenRouter API key by env variable name.
- * e.g. getOpenRouterKey("OPENROUTER_API_KEY_NVIDIA")
+ * Resolve a GitHub token from an env var name.
+ * e.g. getGithubModelKey("GITHUB_GROK_TOKEN")
  */
-export function getOpenRouterKey(envName: string): string {
+export function getGithubModelKey(envName: string): string {
     const key = process.env[envName];
-    if (!key) throw new Error(`${envName} is not configured in environment`);
+    if (!key) throw new Error(`${envName} is not set in environment`);
     return key;
 }
 
-export async function openRouterChat(
-    options: OpenRouterChatOptions
+export async function githubModelChat(
+    options: GithubModelChatOptions
 ): Promise<AsyncGenerator<{ content: string; thinking?: string }, void, unknown>> {
-    const { apiKey, model, messages, temperature = 0.7, max_tokens = 2048 } = options;
+    const { apiKey, model, messages, temperature = 0.3, max_tokens = 2048 } = options;
 
-    console.log("[OpenRouter] →", { model, messages: messages.length, temperature, stream: true });
+    console.log("[GitHub Models] →", { model, messages: messages.length, temperature, stream: true });
 
-    const res = await fetch(OPENROUTER_API_URL, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
+    const res = await fetch(GITHUB_MODELS_URL, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ model, messages, temperature, max_tokens, stream: true }),
+        signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
         let errBody: any = {};
@@ -54,6 +62,7 @@ export async function openRouterChat(
 
     if (!res.body) throw new Error("No response body");
 
+    // We return an async generator that yields { content, thinking } objects as they arrive
     return (async function* () {
         const reader = res.body!.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -66,6 +75,7 @@ export async function openRouterChat(
             if (value) {
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split("\n");
+                // Keep the last partial line in the buffer
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGeminiClient, GEMINI_CONFIG, isQuotaError } from "@/lib/gemini-config";
 import { sarvamChat } from "@/lib/sarvam-config";
 import { openRouterChat, getOpenRouterKey } from "@/lib/openrouter-config";
+import { githubModelChat, getGithubModelKey } from "@/lib/github-models-config";
 
 /* ---------- RATE LIMITING ---------- */
 const RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds (more reasonable)
@@ -204,6 +205,52 @@ export async function POST(req: NextRequest) {
         max_tokens: 2048,
         apiKeyEnv: "OPENROUTER_API_KEY_STEPFUN",
       },
+
+      // ── GitHub Models: Grok 3 ─────────────────────────────────────────
+      // Uses GitHub Personal Access Token (PAT) — one token per model.
+      // To add more GitHub models, add a new entry here with provider: "github".
+      "grok-3": {
+        provider: "github",
+        apiModel: "grok-3",
+        displayName: "Grok 3",
+        systemPrompt: null,
+        temperature: 0.3,
+        max_tokens: 2048,
+        apiKeyEnv: "GITHUB_GROK_TOKEN",
+      },
+
+      // ── GitHub Models: CodeStral ──────────────────────────────────────
+      "codestral": {
+        provider: "github",
+        apiModel: "Codestral-2501",
+        displayName: "CodeStral",
+        systemPrompt: "You are CodeStral, an expert AI coding assistant. Help users write, debug, explain, and optimize code across all programming languages.",
+        temperature: 0.3,
+        max_tokens: 2048,
+        apiKeyEnv: "GITHUB_CODESTRAL_TOKEN",
+      },
+
+      // ── GitHub Models: Phi-4 by Microsoft ────────────────────────────
+      "phi-4": {
+        provider: "github",
+        apiModel: "Phi-4",
+        displayName: "Phi-4 by Microsoft",
+        systemPrompt: "You are Phi-4, an AI assistant by Microsoft with strong logical reasoning capabilities. Help users think through problems analytically and accurately.",
+        temperature: 0.3,
+        max_tokens: 2048,
+        apiKeyEnv: "GITHUB_Phi-4_TOKEN",
+      },
+
+      // ── GitHub Models: Phi-4-mini-reasoning by Microsoft ─────────────
+      "phi-4-reasoning": {
+        provider: "github",
+        apiModel: "Phi-4-mini-reasoning",
+        displayName: "Phi-4-reasoning",
+        systemPrompt: "You are Phi-4-reasoning. IMPORTANT: If you use LaTeX formatting, especially \\boxed{} for final answers, you MUST wrap it in double dollar signs $$ for block math or single dollar signs $ for inline math. Never output raw \\boxed{} without delimiters.",
+        temperature: 0.3,
+        max_tokens: 4096,          // reasoning tokens + answer — needs room
+        apiKeyEnv: "GITHUB_Phi-4-reasoning_TOKEN",
+      },
     };
 
     const { messages, model: requestedModel } = await req.json();
@@ -227,6 +274,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Helper to stream any AsyncGenerator to the client
+    const streamResponse = (streamGenerator: AsyncGenerator<{ content: string; thinking?: string }, void, unknown>) => {
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          try {
+            for await (const chunk of streamGenerator) {
+              // Send the delta formatted as SSE
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            }
+          } catch (err: any) {
+            console.error("Streaming error:", err);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));
+          } finally {
+            controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            controller.close();
+          }
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive"
+        }
+      });
+    };
+
     // ── Gemini provider ────────────────────────────────────────────────
     if (modelConfig.provider === "gemini") {
       const genAI = getGeminiClient();
@@ -234,12 +310,34 @@ export async function POST(req: NextRequest) {
         model: modelConfig.apiModel,
         generationConfig: GEMINI_CONFIG.generationConfig,
       });
-      const response = await generateWithRetry(model, lastUserMessage);
-      return NextResponse.json({ message: response });
+
+      const chat = model.startChat({
+        history: messages
+          .filter((m: any) => m.id !== "welcome" && m.role !== "system")
+          .slice(0, -1) // All except the very last user message
+          .map((m: any) => ({
+            role: m.role === "user" ? "user" : "model",
+            parts: [{ text: m.content }],
+          })),
+        systemInstruction: modelConfig.systemPrompt ? { parts: [{ text: modelConfig.systemPrompt }], role: "system" } : undefined,
+      });
+
+      const streamResult = await chat.sendMessageStream(lastUserMessage);
+
+      // Convert Google's async iterator into our standard AsyncGenerator format
+      const streamGenerator = async function* () {
+        for await (const chunk of streamResult.stream) {
+          const chunkText = chunk.text();
+          if (chunkText) {
+            yield { content: chunkText, thinking: undefined };
+          }
+        }
+      }();
+
+      return streamResponse(streamGenerator);
     }
 
     // ── Sarvam AI provider ─────────────────────────────────────────────
-    // Config (systemPrompt, temperature, wiki_grounding) comes from MODEL_REGISTRY.
     if (modelConfig.provider === "sarvam") {
       const sarvamMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
         ...(modelConfig.systemPrompt
@@ -252,19 +350,17 @@ export async function POST(req: NextRequest) {
             content: m.content as string,
           })),
       ];
-      const response = await sarvamChat({
+      const streamGenerator = await sarvamChat({
         messages: sarvamMessages,
         temperature: modelConfig.temperature ?? 0.2,
         top_p: 1.0,
         max_tokens: modelConfig.max_tokens ?? 2048,
         wiki_grounding: modelConfig.wiki_grounding ?? false,
       });
-      return NextResponse.json({ message: response });
+      return streamResponse(streamGenerator);
     }
 
     // ── OpenRouter provider ────────────────────────────────────────────
-    // Generic handler — each model's config (systemPrompt, temperature, etc.)
-    // is read from MODEL_REGISTRY so no model can ever affect another.
     if (modelConfig.provider === "openrouter") {
       const openRouterMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
         ...(modelConfig.systemPrompt
@@ -277,18 +373,41 @@ export async function POST(req: NextRequest) {
             content: m.content as string,
           })),
       ];
-      // Each model has its own dedicated API key stored in its registry entry
       const keyEnv = modelConfig.apiKeyEnv ?? "OPENROUTER_API_KEY_NVIDIA";
       const apiKey = getOpenRouterKey(keyEnv);
-
-      const response = await openRouterChat({
+      const streamGenerator = await openRouterChat({
         model: modelConfig.apiModel,
         messages: openRouterMessages,
         temperature: modelConfig.temperature ?? 0.7,
         max_tokens: modelConfig.max_tokens ?? 2048,
         apiKey,
       });
-      return NextResponse.json({ message: response });
+      return streamResponse(streamGenerator);
+    }
+
+    // ── GitHub Models provider ─────────────────────────────────────────
+    if (modelConfig.provider === "github") {
+      const githubMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        ...(modelConfig.systemPrompt
+          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+          : []),
+        ...messages
+          .filter((m: any) => m.id !== "welcome")
+          .map((m: any) => ({
+            role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+            content: m.content as string,
+          })),
+      ];
+      const apiKey = getGithubModelKey(modelConfig.apiKeyEnv ?? "GITHUB_GROK_TOKEN");
+      const streamGenerator = await githubModelChat({
+        model: modelConfig.apiModel,
+        messages: githubMessages,
+        temperature: modelConfig.temperature ?? 0.3,
+        max_tokens: modelConfig.max_tokens ?? 2048,
+        apiKey,
+      });
+
+      return streamResponse(streamGenerator);
     }
 
     // ── Fallback ───────────────────────────────────────────────────────
