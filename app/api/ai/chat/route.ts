@@ -238,7 +238,7 @@ export async function POST(req: NextRequest) {
         systemPrompt: "You are Phi-4, an AI assistant by Microsoft with strong logical reasoning capabilities. Help users think through problems analytically and accurately.",
         temperature: 0.3,
         max_tokens: 2048,
-        apiKeyEnv: "GITHUB_Phi-4_TOKEN",
+        apiKeyEnv: "GITHUB_PHI_FOUR_TOKEN",
       },
 
       // ── GitHub Models: Phi-4-mini-reasoning by Microsoft ─────────────
@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
         systemPrompt: "You are Phi-4-reasoning. IMPORTANT: If you use LaTeX formatting, especially \\boxed{} for final answers, you MUST wrap it in double dollar signs $$ for block math or single dollar signs $ for inline math. Never output raw \\boxed{} without delimiters.",
         temperature: 0.3,
         max_tokens: 4096,          // reasoning tokens + answer — needs room
-        apiKeyEnv: "GITHUB_Phi-4-reasoning_TOKEN",
+        apiKeyEnv: "GITHUB_PHI_FOUR_REASONING_TOKEN",
       },
     };
 
