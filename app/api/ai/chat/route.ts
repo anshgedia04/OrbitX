@@ -268,7 +268,7 @@ export async function POST(req: NextRequest) {
         systemPrompt: "i am GPT 4.1 by OPENAI",
         temperature: 0.3,
         max_tokens: 2018,
-        apiKeyEnv: "GITHUB_GPT_4.1_TOKEN",
+        apiKeyEnv: "GITHUB_GPT_4_1_TOKEN",
       },
       
       "gpt-4o": {
