@@ -37,8 +37,32 @@ export function verifyRefreshToken(token: string): any {
     }
 }
 
-// Mock email sender
+import nodemailer from 'nodemailer';
+
+// ... (previous functions: hashPassword, comparePassword, generateToken, generateRefreshToken, verifyToken, verifyRefreshToken)
+
+// Email sender using nodemailer
 export async function sendEmail(to: string, subject: string, html: string) {
-    console.log(`[Mock Email] To: ${to}, Subject: ${subject}`);
-    console.log(`[Mock Email Body]: ${html}`);
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.MAIL,
+            pass: process.env.APP_PASSWORD,
+        },
+    });
+
+    const mailOptions = {
+        from: `OrbitX Notes <${process.env.MAIL}>`,
+        to,
+        subject,
+        html,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`[Email Sent] To: ${to}, Subject: ${subject}`);
+    } catch (error) {
+        console.error('[Email Error]:', error);
+        throw new Error('Failed to send email');
+    }
 }

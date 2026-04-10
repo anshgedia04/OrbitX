@@ -126,6 +126,18 @@ interface AIModel {
 
 const AI_MODELS: AIModel[] = [
     { id: "codestral", label: "CodeStral", badge: "Coding Expert", color: "from-teal-400 to-cyan-500", disabled: false },
+    {
+        id: "openai",
+        label: "OpenAI",
+        badge: "Models",
+        color: "from-emerald-400 to-green-600",
+        disabled: false,
+        subModels: [
+            { id: "gpt-4o", label: "GPT-4o", badge: "Flagship" },
+            { id: "gpt-4.1", label: "GPT-4.1", badge: "GitHub Models" },
+        ],
+    },
+    { id: "claude-3.5-sonnet", label: "Claude 3.5 Sonnet", badge: "Anthropic", color: "from-orange-400 to-amber-500", disabled: true },
     { id: "grok-3", label: "Grok 3", badge: "xAI", color: "from-red-400 to-rose-600", disabled: false, icon: <GrokIcon /> },
     { id: "orbitx-ai", label: "OrbitX AI", badge: "Native Model", color: "from-cyan-400 to-blue-500", disabled: false },
     { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro", badge: "Default", color: "from-violet-500 to-purple-600", disabled: false, icon: <GeminiIcon /> },
@@ -144,7 +156,6 @@ const AI_MODELS: AIModel[] = [
             { id: "phi-4-reasoning", label: "Phi-4-reasoning", badge: "Deep Thinking" },
         ],
     },
-    { id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5", badge: "Coming Soon", color: "from-orange-400 to-amber-500", disabled: true },
 ];
 
 export default function AIPage() {

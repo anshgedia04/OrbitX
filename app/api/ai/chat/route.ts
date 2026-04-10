@@ -175,16 +175,24 @@ export async function POST(req: NextRequest) {
         max_tokens: 2048,
         apiKeyEnv: "OPENROUTER_API_KEY_ARCEE",   // ← dedicated key
       },
-      // "meta-llama": {
-      //   provider:     "openrouter",
-      //   apiModel:     "meta-llama/llama-3.3-70b-instruct:free",
-      //   displayName:  "Meta Llama 3.3",
-      //   systemPrompt: "You are a helpful assistant.",
-      //   temperature:  0.7,
-      //   max_tokens:   2048,
-      // },
-
-      // ── OpenRouter: GLM 4.5 Air ───────────────────────────────────────
+      "meta-llama": {
+        provider: "openrouter",
+        apiModel: "meta-llama/llama-3.3-70b-instruct:free",
+        displayName: "Meta Llama 3.3",
+        systemPrompt: "You are a helpful assistant.",
+        temperature: 0.7,
+        max_tokens: 2048,
+      },
+      "claude-3.5-sonnet": {
+        provider: "openrouter",
+        apiModel: "anthropic/claude-3.5-sonnet",
+        displayName: "Claude 3.5 Sonnet",
+        systemPrompt: "You are a helpful AI assistant.",
+        temperature: 0.7,
+        max_tokens: 4096,
+        apiKeyEnv: "OPENROUTER_API_KEY",
+      },
+ // ── OpenRouter: GLM 4.5 Air ───────────────────────────────────────
       "glm-4.5-air": {
         provider: "openrouter",
         apiModel: "z-ai/glm-4.5-air:free",
@@ -251,6 +259,29 @@ export async function POST(req: NextRequest) {
         max_tokens: 4096,          // reasoning tokens + answer — needs room
         apiKeyEnv: "GITHUB_PHI_FOUR_REASONING_TOKEN",
       },
+
+      // ── GitHub Models: GPT-4.1 ────────────────────────────────────────
+      "gpt-4.1": {
+        provider: "github",
+        apiModel: "gpt-4.1",
+        displayName: "GPT-4.1",
+        systemPrompt: "i am GPT 4.1 by OPENAI",
+        temperature: 0.3,
+        max_tokens: 2018,
+        apiKeyEnv: "GITHUB_GPT_4.1_TOKEN",
+      },
+      
+      "gpt-4o": {
+        provider: "github",
+        apiModel: "gpt-4o",
+        displayName: "GPT-4o",
+        systemPrompt: "my model name is  GPT-4o developed by OPENAI",
+        temperature: 0.3,
+        max_tokens: 2018,
+        apiKeyEnv: "GITHUB_GPT_4o_TOKEN",
+      },
+
+
     };
 
     const { messages, model: requestedModel } = await req.json();
