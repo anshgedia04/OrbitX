@@ -122,9 +122,9 @@ export default function SubscriptionPage() {
                                         const user = await res.json();
                                         // REPLACE THIS WITH YOUR ACTUAL RAZORPAY PAYMENT PAGE URL provided by User
                                         // Example: https://rzp.io/l/your_id
-                                        const razorpayUrl = "https://rzp.io/rzp/XVdonxrm"; //testing payment page
+                                        // const razorpayUrl = "https://rzp.io/rzp/XVdonxrm"; //testing payment page
 
-                                        // const razorpayUrl = "https://rzp.io/rzp/JSEcnaH"; //actual payment page with real money
+                                        const razorpayUrl = "https://rzp.io/rzp/JSEcnaH"; //actual payment page with real money
                                         window.location.href = `${razorpayUrl}?email=${encodeURIComponent(user.email)}`;
                                     } else {
                                         // Fallback if can't get email, just redirect
