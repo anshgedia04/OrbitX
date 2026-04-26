@@ -47,7 +47,9 @@ export async function middleware(request: NextRequest) {
         path.startsWith('/api/webhooks') ||
         path.startsWith('/_next') ||
         path.startsWith('/favicon.ico') ||
-        path.startsWith('/public');
+        path.startsWith('/public') ||
+        path === '/sitemap.xml' ||
+        path === '/robots.txt';
 
     // Redirect authenticated users to dashboard if they visit public pages
     const authHeader = request.headers.get('Authorization');
