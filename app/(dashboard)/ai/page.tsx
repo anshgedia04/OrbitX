@@ -96,12 +96,7 @@ const ReasoningBlock = ({ content, isThinking }: { content: string; isThinking: 
     );
 };
 
-// Grok 3 logo (xAI)
-const GrokIcon = () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.261 5.637L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
-    </svg>
-);
+
 
 // Gemini logo (from public/gemini.png)
 const GeminiIcon = () => (
@@ -125,7 +120,17 @@ interface AIModel {
 }
 
 const AI_MODELS: AIModel[] = [
-    { id: "codestral", label: "CodeStral", badge: "Coding Expert", color: "from-teal-400 to-cyan-500", disabled: false },
+    {
+        id: "mistral",
+        label: "Mistral AI",
+        badge: "Models",
+        color: "from-teal-400 to-cyan-500",
+        disabled: false,
+        subModels: [
+            { id: "codestral", label: "CodeStral", badge: "Coding Expert" },
+            { id: "mistral-small", label: "Mistral Small 3.1", badge: "General" },
+        ],
+    },
     {
         id: "openai",
         label: "OpenAI",
@@ -137,25 +142,24 @@ const AI_MODELS: AIModel[] = [
             { id: "gpt-4.1", label: "GPT-4.1", badge: "GitHub Models" },
         ],
     },
-    { id: "claude-3.5-sonnet", label: "Claude 3.5 Sonnet", badge: "Anthropic", color: "from-orange-400 to-amber-500", disabled: true },
-    { id: "grok-3", label: "Grok 3", badge: "xAI", color: "from-red-400 to-rose-600", disabled: false, icon: <GrokIcon /> },
     { id: "orbitx-ai", label: "OrbitX AI", badge: "Native Model", color: "from-cyan-400 to-blue-500", disabled: false },
     { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro", badge: "Default", color: "from-violet-500 to-purple-600", disabled: false, icon: <GeminiIcon /> },
-    { id: "nvidia-nemotron", label: "Nvidia Nemotron", badge: "Technology", color: "from-green-400 to-emerald-500", disabled: false },
-    { id: "arcee-ai", label: "Arcee AI", badge: "#5 in Technology", color: "from-pink-400 to-rose-500", disabled: false },
+    { id: "kimi-k2.6", label: "Kimi K2.6", badge: "Reasoning Model", color: "from-fuchsia-400 to-purple-500", disabled: false },
     { id: "glm-4.5-air", label: "GLM 4.5 Air", badge: "Science & History", color: "from-yellow-400 to-orange-500", disabled: false },
-    { id: "step-3.5-flash", label: "Step 3.5 Flash", badge: "Tech & Finance", color: "from-blue-400 to-indigo-500", disabled: false },
     {
-        id: "microsoft",
-        label: "Microsoft",
+        id: "qwen",
+        label: "Qwen",
         badge: "Models",
-        color: "from-slate-400 to-blue-600",
+        color: "from-blue-400 to-indigo-500",
         disabled: false,
         subModels: [
-            { id: "phi-4", label: "Phi-4", badge: "Logical Reasoning" },
-            { id: "phi-4-reasoning", label: "Phi-4-reasoning", badge: "Deep Thinking" },
+            { id: "qwen3-coder", label: "Qwen-3 Coder", badge: "Coding" },
         ],
     },
+    { id: "nvidia-nemotron", label: "Nvidia Nemotron", badge: "Technology", color: "from-green-400 to-emerald-500", disabled: false },
+    { id: "cohere-command-a", label: "Cohere Command A", badge: "Enterprise", color: "from-orange-500 to-red-600", disabled: false },
+    { id: "llama-4-scout", label: "Llama 4 Scout", badge: "Groq", color: "from-pink-500 to-orange-400", disabled: false },
+
 ];
 
 export default function AIPage() {
@@ -297,12 +301,17 @@ export default function AIPage() {
                                     // Detect transitions from thinking to content
                                     const isNowThinkingDone = !!fullContent;
 
+                                    let displayContent = fullContent;
+                                    if (fullThinking) {
+                                        displayContent = `<think>\n${fullThinking}\n</think>\n\n${fullContent}`;
+                                    }
+
                                     if (!isMessageCreated) {
                                         isMessageCreated = true;
                                         setMessages(prev => [...prev, {
                                             id: aiMessageId,
                                             role: "assistant",
-                                            content: fullContent || fullThinking, // Fallback to thinking if content is empty
+                                            content: displayContent,
                                             timestamp: new Date()
                                         }]);
                                     } else {
@@ -311,7 +320,7 @@ export default function AIPage() {
                                             msg.id === aiMessageId
                                                 ? {
                                                     ...msg,
-                                                    content: fullContent || fullThinking,
+                                                    content: displayContent,
                                                 }
                                                 : msg
                                         ));

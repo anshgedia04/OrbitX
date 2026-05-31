@@ -1,49 +1,46 @@
 /**
- * OpenRouter AI client — supports multiple API keys, one per model.
- * Endpoint: https://openrouter.ai/api/v1/chat/completions
+ * NVIDIA API client — OpenAI-compatible endpoint.
+ * Endpoint: https://integrate.api.nvidia.com/v1/chat/completions
  * Auth:     Authorization: Bearer <apiKey>
  */
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
-export interface OpenRouterMessage {
+export interface NvidiaMessage {
     role: "system" | "user" | "assistant";
     content: string;
 }
 
-export interface OpenRouterChatOptions {
+export interface NvidiaChatOptions {
     model: string;
-    messages: OpenRouterMessage[];
+    messages: NvidiaMessage[];
     temperature?: number;
     max_tokens?: number;
-    /** Explicit API key — pass the model-specific key from env */
     apiKey: string;
-    reasoning?: boolean;
 }
 
-/**
- * Read an OpenRouter API key by env variable name.
- * e.g. getOpenRouterKey("OPENROUTER_API_KEY_NVIDIA")
- */
-export function getOpenRouterKey(envName: string): string {
+export function getNvidiaKey(envName: string): string {
     const key = process.env[envName];
     if (!key) throw new Error(`${envName} is not configured in environment`);
     return key;
 }
 
-export async function openRouterChat(
-    options: OpenRouterChatOptions
+export async function nvidiaChat(
+    options: NvidiaChatOptions
 ): Promise<AsyncGenerator<{ content: string; thinking?: string }, void, unknown>> {
-    const { apiKey, model, messages, temperature = 0.7, max_tokens = 2048 } = options;
+    const { apiKey, model, messages, temperature = 1, max_tokens = 16384 } = options;
 
-    console.log("[OpenRouter] →", { model, messages: messages.length, temperature, stream: true });
+    console.log("[Nvidia] →", { model, messages: messages.length, temperature, stream: true });
 
-    const body: any = { model, messages, temperature, max_tokens, stream: true };
-    if (options.reasoning) {
-        body.reasoning = { enabled: true };
-    }
+    const body: any = { 
+        model, 
+        messages, 
+        temperature, 
+        max_tokens, 
+        stream: true 
+    };
 
-    const res = await fetch(OPENROUTER_API_URL, {
+    const res = await fetch(NVIDIA_API_URL, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${apiKey}`,
@@ -55,7 +52,7 @@ export async function openRouterChat(
     if (!res.ok) {
         let errBody: any = {};
         try { errBody = await res.json(); } catch { }
-        const errMsg = errBody?.error?.metadata?.raw ?? errBody?.error?.message ?? errBody?.message ?? `HTTP ${res.status}`;
+        const errMsg = errBody?.error?.message ?? errBody?.message ?? `HTTP ${res.status}`;
         throw new Error(errMsg);
     }
 

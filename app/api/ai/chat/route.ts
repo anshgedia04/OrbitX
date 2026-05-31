@@ -3,6 +3,8 @@ import { getGeminiClient, GEMINI_CONFIG, isQuotaError } from "@/lib/gemini-confi
 import { sarvamChat } from "@/lib/sarvam-config";
 import { openRouterChat, getOpenRouterKey } from "@/lib/openrouter-config";
 import { githubModelChat, getGithubModelKey } from "@/lib/github-models-config";
+import { groqChat, getGroqKey } from "@/lib/groq-config";
+import { nvidiaChat, getNvidiaKey } from "@/lib/nvidia-config";
 
 /* ---------- RATE LIMITING ---------- */
 const RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds (more reasonable)
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
       max_tokens?: number;
       wiki_grounding?: boolean;        // Sarvam-specific
       apiKeyEnv?: string;         // OpenRouter: env var name for model-specific key
+      reasoning?: boolean;
     };
 
     const MODEL_REGISTRY: Record<string, ModelEntry> = {
@@ -165,16 +168,7 @@ export async function POST(req: NextRequest) {
         apiKeyEnv: "OPENROUTER_API_KEY_NVIDIA",  // ← dedicated key
       },
 
-      // ── OpenRouter: Arcee AI ──────────────────────────────────────
-      "arcee-ai": {
-        provider: "openrouter",
-        apiModel: "arcee-ai/trinity-large-preview:free",
-        displayName: "Arcee AI",
-        systemPrompt: "my model name is Arcee-AI-trinity-large-preview your ai assistant",
-        temperature: 0.7,
-        max_tokens: 2048,
-        apiKeyEnv: "OPENROUTER_API_KEY_ARCEE",   // ← dedicated key
-      },
+
       "meta-llama": {
         provider: "openrouter",
         apiModel: "meta-llama/llama-3.3-70b-instruct:free",
@@ -203,29 +197,19 @@ export async function POST(req: NextRequest) {
         apiKeyEnv: "OPENROUTER_API_KEY_GLM",
       },
 
-      // ── OpenRouter: Step 3.5 Flash ────────────────────────────────────
-      "step-3.5-flash": {
+
+      // ── OpenRouter: Kimi K2.6 ─────────────────────────────────────────
+      "kimi-k2.6": {
         provider: "openrouter",
-        apiModel: "stepfun/step-3.5-flash:free",
-        displayName: "Step 3.5 Flash",
-        systemPrompt: "You are Step 3.5 Flash, an AI assistant specializing in technology and finance topics.",
+        apiModel: "moonshotai/kimi-k2.6:free",
+        displayName: "Kimi K2.6",
+        systemPrompt: "You are Kimi K2.6, a helpful AI assistant. Answer step-by-step and show your reasoning.",
         temperature: 0.7,
-        max_tokens: 2048,
-        apiKeyEnv: "OPENROUTER_API_KEY_STEPFUN",
+        max_tokens: 4096,
+        apiKeyEnv: "OPENROUTER_API_KEY_KIMI",
+        reasoning: true,
       },
 
-      // ── GitHub Models: Grok 3 ─────────────────────────────────────────
-      // Uses GitHub Personal Access Token (PAT) — one token per model.
-      // To add more GitHub models, add a new entry here with provider: "github".
-      "grok-3": {
-        provider: "github",
-        apiModel: "grok-3",
-        displayName: "Grok 3",
-        systemPrompt: null,
-        temperature: 0.3,
-        max_tokens: 2048,
-        apiKeyEnv: "GITHUB_GROK_TOKEN",
-      },
 
       // ── GitHub Models: CodeStral ──────────────────────────────────────
       "codestral": {
@@ -238,27 +222,28 @@ export async function POST(req: NextRequest) {
         apiKeyEnv: "GITHUB_CODESTRAL_TOKEN",
       },
 
-      // ── GitHub Models: Phi-4 by Microsoft ────────────────────────────
-      "phi-4": {
+      // ── GitHub Models: Mistral Small 3.1 ──────────────────────────────
+      "mistral-small": {
         provider: "github",
-        apiModel: "Phi-4",
-        displayName: "Phi-4 by Microsoft",
-        systemPrompt: "You are Phi-4, an AI assistant by Microsoft with strong logical reasoning capabilities. Help users think through problems analytically and accurately.",
-        temperature: 0.3,
-        max_tokens: 2048,
-        apiKeyEnv: "GITHUB_PHI_FOUR_TOKEN",
+        apiModel: "mistral-small-2503",
+        displayName: "Mistral Small 3.1",
+        systemPrompt: "You are Mistral Small 3.1, a helpful AI assistant.",
+        temperature: 0.5,
+        max_tokens: 4096,
+        apiKeyEnv: "GITHUB_MISTRAL_TOKEN",
       },
 
-      // ── GitHub Models: Phi-4-mini-reasoning by Microsoft ─────────────
-      "phi-4-reasoning": {
+      // ── GitHub Models: Cohere Command A ────────────────────────────────
+      "cohere-command-a": {
         provider: "github",
-        apiModel: "Phi-4-mini-reasoning",
-        displayName: "Phi-4-reasoning",
-        systemPrompt: "You are Phi-4-reasoning. IMPORTANT: If you use LaTeX formatting, especially \\boxed{} for final answers, you MUST wrap it in double dollar signs $$ for block math or single dollar signs $ for inline math. Never output raw \\boxed{} without delimiters.",
-        temperature: 0.3,
-        max_tokens: 4096,          // reasoning tokens + answer — needs room
-        apiKeyEnv: "GITHUB_PHI_FOUR_REASONING_TOKEN",
+        apiModel: "cohere-command-a",
+        displayName: "Cohere Command A",
+        systemPrompt: "You are Cohere Command A, a helpful AI assistant.",
+        temperature: 0.7,
+        max_tokens: 4096,
+        apiKeyEnv: "GITHUB_COHERE_TOKEN",
       },
+
 
       // ── GitHub Models: GPT-4.1 ────────────────────────────────────────
       "gpt-4.1": {
@@ -269,6 +254,29 @@ export async function POST(req: NextRequest) {
         temperature: 0.3,
         max_tokens: 2018,
         apiKeyEnv: "GITHUB_GPT_4_1_TOKEN",
+      },
+
+
+      // ── Nvidia: Qwen-3 Coder ──────────────────────────────────────────
+      "qwen3-coder": {
+        provider: "nvidia",
+        apiModel: "qwen/qwen3-coder-480b-a35b-instruct",
+        displayName: "Qwen-3 Coder",
+        systemPrompt: "You are Qwen-3 Coder, an expert AI programming assistant.",
+        temperature: 0.7,
+        max_tokens: 4096,
+        apiKeyEnv: "NVIDIA_QWEN",
+      },
+
+      // ── Groq: Llama 4 Scout ───────────────────────────────────────────
+      "llama-4-scout": {
+        provider: "groq",
+        apiModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+        displayName: "Llama 4 Scout",
+        systemPrompt: "You are Llama 4 Scout, a highly capable AI assistant running on Groq.",
+        temperature: 1,
+        max_tokens: 1024,
+        apiKeyEnv: "GROQ_API",
       },
  //api changed //error     
       "gpt-4o": {
@@ -412,6 +420,7 @@ export async function POST(req: NextRequest) {
         temperature: modelConfig.temperature ?? 0.7,
         max_tokens: modelConfig.max_tokens ?? 2048,
         apiKey,
+        reasoning: modelConfig.reasoning,
       });
       return streamResponse(streamGenerator);
     }
@@ -435,6 +444,56 @@ export async function POST(req: NextRequest) {
         messages: githubMessages,
         temperature: modelConfig.temperature ?? 0.3,
         max_tokens: modelConfig.max_tokens ?? 2048,
+        apiKey,
+      });
+
+      return streamResponse(streamGenerator);
+    }
+
+    // ── Groq provider ──────────────────────────────────────────────────
+    if (modelConfig.provider === "groq") {
+      const groqMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        ...(modelConfig.systemPrompt
+          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+          : []),
+        ...messages
+          .filter((m: any) => m.id !== "welcome")
+          .map((m: any) => ({
+            role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+            content: m.content as string,
+          })),
+      ];
+      const apiKey = getGroqKey(modelConfig.apiKeyEnv ?? "GROQ_API");
+      const streamGenerator = await groqChat({
+        model: modelConfig.apiModel,
+        messages: groqMessages,
+        temperature: modelConfig.temperature ?? 1,
+        max_tokens: modelConfig.max_tokens ?? 1024,
+        apiKey,
+      });
+
+      return streamResponse(streamGenerator);
+    }
+
+    // ── Nvidia provider ────────────────────────────────────────────────
+    if (modelConfig.provider === "nvidia") {
+      const nvidiaMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        ...(modelConfig.systemPrompt
+          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+          : []),
+        ...messages
+          .filter((m: any) => m.id !== "welcome")
+          .map((m: any) => ({
+            role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+            content: m.content as string,
+          })),
+      ];
+      const apiKey = getNvidiaKey(modelConfig.apiKeyEnv ?? "NVIDIA_Z_Ai_API_KEY");
+      const streamGenerator = await nvidiaChat({
+        model: modelConfig.apiModel,
+        messages: nvidiaMessages,
+        temperature: modelConfig.temperature ?? 1,
+        max_tokens: modelConfig.max_tokens ?? 16384,
         apiKey,
       });
 
