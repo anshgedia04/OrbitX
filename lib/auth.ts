@@ -43,6 +43,11 @@ import nodemailer from 'nodemailer';
 
 // Email sender using nodemailer
 export async function sendEmail(to: string, subject: string, html: string) {
+    if (!process.env.MAIL || !process.env.APP_PASSWORD) {
+        console.error('Mail credentials missing in environment variables');
+        throw new Error('Email configuration is missing on the server');
+    }
+
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
