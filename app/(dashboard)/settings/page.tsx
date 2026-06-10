@@ -8,14 +8,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function SettingsPage() {
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const router = useRouter();
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<"profile" | "preferences" | "account" | "security">("profile");
     const [isLoading, setIsLoading] = useState(false);
 
     // Form states
-    const [profileForm, setProfileForm] = useState({ name: "", email: "", avatar: "" });
+    const [profileForm, setProfileForm] = useState({ name: "", email: "", username: "", avatar: "" });
     const [preferencesForm, setPreferencesForm] = useState({
         theme: "system",
         autoSave: true,
@@ -29,6 +29,7 @@ export default function SettingsPage() {
             setProfileForm({
                 name: user.name || "",
                 email: user.email || "",
+                username: user.username || "",
                 avatar: user.avatar || ""
             });
             if (user.preferences) {
@@ -51,11 +52,18 @@ export default function SettingsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(profileForm),
             });
-            if (!response.ok) throw new Error("Failed to update profile");
+            const data = await response.json();
+            if (!response.ok) {
+                // If it's a Zod validation error array
+                if (Array.isArray(data.error)) {
+                    throw new Error(data.error[0].message);
+                }
+                throw new Error(data.error || "Failed to update profile");
+            }
             showToast("Profile updated successfully", "success");
-            // Ideally refresh user context here
-        } catch (error) {
-            showToast("Failed to update profile", "error");
+            await refreshUser();
+        } catch (error: any) {
+            showToast(error.message || "Failed to update profile", "error");
         } finally {
             setIsLoading(false);
         }
@@ -213,12 +221,26 @@ export default function SettingsPage() {
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-sm text-white/60 mb-1">Username</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">@</span>
+                                        <input
+                                            type="text"
+                                            value={profileForm.username}
+                                            onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg pl-8 pr-4 py-2 text-white focus:outline-none focus:border-primary/50"
+                                            placeholder="king_04"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-white/40 mt-1">Letters, numbers, and underscores only. Max 10 characters.</p>
+                                </div>
+                                <div>
                                     <label className="block text-sm text-white/60 mb-1">Email Address</label>
                                     <input
                                         type="email"
                                         value={profileForm.email}
-                                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary/50"
+                                        disabled
+                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white/50 cursor-not-allowed focus:outline-none"
                                     />
                                 </div>
                             </div>

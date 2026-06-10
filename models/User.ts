@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IUser extends Document {
     email: string;
+    username?: string;
     passwordHash?: string;
     googleId?: string;
     name: string;
@@ -21,12 +22,14 @@ export interface IUser extends Document {
     subscriptionId?: string;
     subscriptionPlan?: string;
     subscriptionExpiry?: Date;
+    friends: mongoose.Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
 }
 
 const UserSchema: Schema = new Schema({
     email: { type: String, required: true, unique: true },
+    username: { type: String, sparse: true, unique: true }, // Added username (original case)
     passwordHash: { type: String }, // Made optional for Google Auth users
     googleId: { type: String, unique: true, sparse: true }, // Added for Google Auth
     name: { type: String, required: true },
@@ -46,6 +49,7 @@ const UserSchema: Schema = new Schema({
     subscriptionId: { type: String },
     subscriptionPlan: { type: String },
     subscriptionExpiry: { type: Date },
+    friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, {
     timestamps: true,
 });

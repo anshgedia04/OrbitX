@@ -1,12 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Bell, User, Menu, Home } from "lucide-react";
+import { Search, Bell, User, Menu, Home, UserPlus } from "lucide-react";
 import { Button } from "./Button";
 import { SearchModal } from "@/components/search/SearchModal";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Link from "next/link";
+
+import { useRouter } from "next/navigation";
+import { useToast } from "./Toast";
+import { FriendRequestModal } from "@/components/friends/FriendRequestModal";
+import { NotificationsDropdown } from "@/components/friends/NotificationsDropdown";
 
 interface TopBarProps {
     onMenuClick?: () => void;
@@ -14,7 +19,11 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const { user } = useAuth();
+    const router = useRouter();
+    const { showToast } = useToast();
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,10 +80,36 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
                             <span className="hidden sm:inline">Home</span>
                         </Link>
 
-                        <button className="p-2 text-white/50 hover:text-white transition-colors relative">
-                            <Bell size={20} />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0f111a]" />
+                        {/* Friend Requests */}
+                        <button 
+                            className="p-2 text-white/50 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-medium"
+                            title="Find Friends"
+                            onClick={() => {
+                                if (!user?.username) {
+                                    showToast("Please set your unique username first to connect with friends.", "error");
+                                    router.push("/settings");
+                                    return;
+                                }
+                                setIsFriendModalOpen(true);
+                            }}
+                        >
+                            <UserPlus className="w-5 h-5" />
                         </button>
+
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                className="p-2 text-white/50 hover:text-white transition-colors relative"
+                            >
+                                <Bell size={20} />
+                                {/* Optional: A real unread count would require fetching in TopBar, but we'll show red dot for now */}
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0f111a]" />
+                            </button>
+                            <NotificationsDropdown 
+                                isOpen={isNotificationsOpen} 
+                                onClose={() => setIsNotificationsOpen(false)} 
+                            />
+                        </div>
                     </div>
 
                     <div className="h-8 w-[1px] bg-white/10 hidden md:block" />
@@ -102,6 +137,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
             </div>
 
             <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            <FriendRequestModal isOpen={isFriendModalOpen} onClose={() => setIsFriendModalOpen(false)} />
         </>
     );
 };
