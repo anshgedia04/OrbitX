@@ -93,18 +93,72 @@ function ChatContent() {
         }
     }, [friendId, isReady, user, getSharedSecret]);
 
-    // Polling effect
+    // Real-time Pusher effect
     useEffect(() => {
-        if (!hasFriend) return;
+        if (!hasFriend || !user?._id || !friendId) return;
         
         // Initial fetch
         setIsLoadingMsgs(true);
         fetchMessages().finally(() => setIsLoadingMsgs(false));
 
-        // Poll every 3 seconds
-        const interval = setInterval(fetchMessages, 3000);
-        return () => clearInterval(interval);
-    }, [hasFriend, fetchMessages]);
+        let pusher: import('pusher-js').default | null = null;
+        let channel: any = null;
+
+        async function initPusher() {
+            try {
+                const res = await fetch('/api/pusher/config');
+                const { key, cluster } = await res.json();
+                
+                if (!key || !cluster) return;
+
+                const PusherClient = (await import('pusher-js')).default;
+                pusher = new PusherClient(key, { cluster });
+
+                const channelName = [(user as any)._id as string, friendId as string].sort().join('-');
+                channel = pusher.subscribe(channelName);
+
+                channel.bind('new-message', async (msg: any) => {
+                    if (processedMessageIds.current.has(msg.id)) return;
+                    
+                    try {
+                        const sharedSecret = await getSharedSecret(friendId as string);
+                        if (!sharedSecret) return;
+
+                        const text = await decryptMessage(msg.encrypted_content, msg.iv, sharedSecret);
+                        
+                        const newMsg: ChatMessage = {
+                            id: msg.id,
+                            senderId: msg.sender_id === (user as any)._id ? "me" : msg.sender_id,
+                            text,
+                            timestamp: new Date(msg.created_at)
+                        };
+
+                        processedMessageIds.current.add(msg.id);
+                        setMessages(prev => {
+                            if (prev.some(m => m.id === newMsg.id)) return prev;
+                            return [...prev, newMsg].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+                        });
+                    } catch (err) {
+                        console.error("Failed to decrypt live message:", err);
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to init Pusher:", err);
+            }
+        }
+
+        initPusher();
+
+        return () => {
+            if (channel) {
+                channel.unbind_all();
+                channel.unsubscribe();
+            }
+            if (pusher) {
+                pusher.disconnect();
+            }
+        };
+    }, [hasFriend, (user as any)?._id, friendId, fetchMessages, getSharedSecret]);
 
     // Clear messages when friend changes
     useEffect(() => {

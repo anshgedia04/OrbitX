@@ -33,6 +33,8 @@
     "mongoose": "^9.0.0",
     "next": "16.0.7",
     "nodemailer": "^8.0.2",
+    "pusher": "^5.3.4",
+    "pusher-js": "^8.5.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.68.0",

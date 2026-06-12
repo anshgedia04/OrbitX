@@ -3,6 +3,7 @@ import { NextRequest } from 'next/dist/server/web/spec-extension/request';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { sql } from '@/lib/neon';
+import { pusherServer } from '@/lib/pusher';
 
 async function getAuth(req: NextRequest) {
     let token = req.headers.get("authorization")?.split(" ")[1];
@@ -73,6 +74,23 @@ export async function POST(req: NextRequest) {
             DELETE FROM messages
             WHERE created_at <= NOW() - INTERVAL '6 hours';
         `;
+
+        const messageData = {
+            id: result[0].id,
+            sender_id: myId,
+            receiver_id: receiverId,
+            encrypted_content: encryptedContent,
+            iv: iv,
+            created_at: result[0].created_at
+        };
+
+        // Determine deterministic channel name
+        const channelName = [myId, receiverId].sort().join('-');
+        
+        // Broadcast the message asynchronously
+        pusherServer.trigger(channelName, 'new-message', messageData).catch(err => {
+            console.error('Failed to trigger pusher event:', err);
+        });
 
         return NextResponse.json({ 
             success: true, 
