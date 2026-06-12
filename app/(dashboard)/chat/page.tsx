@@ -91,7 +91,8 @@ function ChatContent() {
         } catch (err) {
             console.error("Error polling messages:", err);
         }
-    }, [friendId, isReady, user, getSharedSecret]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [friendId, isReady, user]);
 
     // Real-time Pusher effect
     useEffect(() => {
@@ -158,7 +159,8 @@ function ChatContent() {
                 pusher.disconnect();
             }
         };
-    }, [hasFriend, (user as any)?._id, friendId, fetchMessages, getSharedSecret]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasFriend, (user as any)?._id, friendId]);
 
     // Clear messages when friend changes
     useEffect(() => {
