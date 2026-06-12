@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       // ── OrbitX AI (Sarvam-M) ────────────────────────────────────────
       "orbitx-ai": {
         provider: "sarvam",
-        apiModel: "sarvam-m",
+        apiModel: "sarvam-30b",
         displayName: "OrbitX AI",
         systemPrompt:
           "You are OrbitX AI, a smart and helpful AI assistant built into the OrbitX Notes app. " +

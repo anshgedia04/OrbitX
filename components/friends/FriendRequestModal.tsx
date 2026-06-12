@@ -18,6 +18,8 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
     const debouncedQuery = useDebounce(query, 300);
     const [results, setResults] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [friendsList, setFriendsList] = useState<any[]>([]);
+    const [isLoadingFriends, setIsLoadingFriends] = useState(false);
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
     const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
     const inputRef = useRef<HTMLInputElement>(null);
@@ -27,13 +29,30 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 100);
+            fetchFriendsList();
         } else {
             setQuery("");
             setResults([]);
+            setFriendsList([]);
             setSentRequests(new Set());
             setPendingRequests(new Set());
         }
     }, [isOpen]);
+
+    const fetchFriendsList = async () => {
+        setIsLoadingFriends(true);
+        try {
+            const res = await fetch("/api/friends/list");
+            if (res.ok) {
+                const data = await res.json();
+                setFriendsList(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch friends list", error);
+        } finally {
+            setIsLoadingFriends(false);
+        }
+    };
 
     useEffect(() => {
         const fetchResults = async () => {
@@ -95,6 +114,102 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
         }
     };
 
+    const handleUnfriend = async (userId: string) => {
+        setPendingRequests(prev => new Set(prev).add(userId));
+        try {
+            const res = await fetch("/api/friends/unfriend", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ friendId: userId })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast("Unfriended successfully", "success");
+                setResults(prev => prev.map(u => u._id === userId ? { ...u, relationStatus: 'none' } : u));
+                setFriendsList(prev => prev.filter(u => u._id !== userId));
+                setSentRequests(prev => {
+                    const next = new Set(prev);
+                    next.delete(userId);
+                    return next;
+                });
+            } else {
+                showToast(data.error || "Failed to unfriend", "error");
+            }
+        } catch (error) {
+            showToast("Failed to unfriend", "error");
+        } finally {
+            setPendingRequests(prev => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+            });
+        }
+    };
+
+    const renderUser = (user: any) => (
+        <div
+            key={user._id}
+            className="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+        >
+            <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary p-[1px] flex-shrink-0">
+                    <div className="w-full h-full rounded-full bg-[#1a1b26] overflow-hidden flex items-center justify-center font-bold text-xs">
+                        {user.avatar ? (
+                            <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            user.name.charAt(0).toUpperCase()
+                        )}
+                    </div>
+                </div>
+                <div className="min-w-0">
+                    <div className="font-medium text-white text-sm truncate">{user.name}</div>
+                    <div className="text-xs text-white/50 truncate">
+                        @{user.username} {user.email && `• ${user.email}`}
+                    </div>
+                </div>
+            </div>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation(); // prevent row click if there's any
+                    if (user.relationStatus === 'friends') {
+                        handleUnfriend(user._id);
+                    } else if (user.relationStatus === 'none' && !sentRequests.has(user._id) && !pendingRequests.has(user._id)) {
+                        handleSendRequest(user._id);
+                    }
+                }}
+                disabled={(user.relationStatus !== 'none' && user.relationStatus !== 'friends') || sentRequests.has(user._id) || pendingRequests.has(user._id)}
+                className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap min-w-[90px] justify-center group",
+                    pendingRequests.has(user._id)
+                        ? "bg-primary/70 text-white cursor-wait"
+                        : user.relationStatus === 'friends'
+                            ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-500 cursor-pointer"
+                            : (user.relationStatus !== 'none' || sentRequests.has(user._id))
+                                ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 cursor-pointer"
+                )}
+            >
+                {pendingRequests.has(user._id) ? (
+                    <><Loader2 size={14} className="animate-spin" /> Processing...</>
+                ) : user.relationStatus === 'self' ? (
+                    <><UserCheck size={14} /> You</>
+                ) : user.relationStatus === 'friends' ? (
+                    <>
+                        <span className="flex items-center gap-1 group-hover:hidden"><UserCheck size={14} /> Friends</span>
+                        <span className="hidden items-center gap-1 group-hover:flex"><X size={14} /> Unfriend</span>
+                    </>
+                ) : user.relationStatus === 'pending_sent' || sentRequests.has(user._id) ? (
+                    <><UserCheck size={14} /> Sent</>
+                ) : user.relationStatus === 'pending_received' ? (
+                    <><UserCheck size={14} /> Requested</>
+                ) : (
+                    <><Send size={14} /> Request</>
+                )}
+            </button>
+        </div>
+    );
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -104,7 +219,7 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
                     />
 
                     <motion.div
@@ -119,7 +234,7 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
                                     <UserPlus className="w-5 h-5 text-primary" />
                                     Find Friends
                                 </h3>
-                                <button onClick={onClose} className="text-white/40 hover:text-white">
+                                <button onClick={onClose} className="text-white/40 hover:text-white cursor-pointer">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -141,75 +256,33 @@ export const FriendRequestModal: React.FC<FriendRequestModalProps> = ({ isOpen, 
                                 <div className="p-8 text-center text-white/40 text-sm">Searching the cosmos...</div>
                             ) : results.length > 0 ? (
                                 <div className="space-y-1">
-                                    {results.map((user) => (
-                                        <div
-                                            key={user._id}
-                                            className="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary p-[1px] flex-shrink-0">
-                                                    <div className="w-full h-full rounded-full bg-[#1a1b26] overflow-hidden flex items-center justify-center font-bold text-xs">
-                                                        {user.avatar ? (
-                                                            <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            user.name.charAt(0).toUpperCase()
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <div className="font-medium text-white text-sm truncate">{user.name}</div>
-                                                    <div className="text-xs text-white/50 truncate">
-                                                        @{user.username} {user.email && `• ${user.email}`}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    if (user.relationStatus === 'none' && !sentRequests.has(user._id) && !pendingRequests.has(user._id)) {
-                                                        handleSendRequest(user._id);
-                                                    }
-                                                }}
-                                                disabled={user.relationStatus !== 'none' || sentRequests.has(user._id) || pendingRequests.has(user._id)}
-                                                className={cn(
-                                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap min-w-[90px] justify-center",
-                                                    pendingRequests.has(user._id)
-                                                        ? "bg-primary/70 text-white cursor-wait"
-                                                        : (user.relationStatus !== 'none' || sentRequests.has(user._id))
-                                                            ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                                            : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 cursor-pointer"
-                                                )}
-                                            >
-                                                {pendingRequests.has(user._id) ? (
-                                                    <><Loader2 size={14} className="animate-spin" /> Sending...</>
-                                                ) : user.relationStatus === 'self' ? (
-                                                    <><UserCheck size={14} /> You</>
-                                                ) : user.relationStatus === 'friends' ? (
-                                                    <><UserCheck size={14} /> Friends</>
-                                                ) : user.relationStatus === 'pending_sent' || sentRequests.has(user._id) ? (
-                                                    <><UserCheck size={14} /> Sent</>
-                                                ) : user.relationStatus === 'pending_received' ? (
-                                                    <><UserCheck size={14} /> Requested</>
-                                                ) : (
-                                                    <><Send size={14} /> Request</>
-                                                )}
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {results.map(renderUser)}
                                 </div>
                             ) : query.length > 1 && (query.startsWith("@") || query.startsWith("#")) ? (
                                 <div className="p-8 text-center text-white/40">
                                     <p>No user found matching "{query}"</p>
                                 </div>
                             ) : (
-                                <div className="p-8 text-center flex flex-col items-center justify-center text-white/30 space-y-3">
-                                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-                                        <Search className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-sm">
-                                        <p>Type <kbd className="bg-white/10 px-1 rounded text-xs mx-1">@</kbd> to search by username</p>
-                                        <p className="mt-1">Type <kbd className="bg-white/10 px-1 rounded text-xs mx-1">#</kbd> to search by email</p>
-                                    </div>
-                                </div>
+                                <>
+                                    {isLoadingFriends ? (
+                                        <div className="p-8 text-center text-white/40 text-sm">Loading friends...</div>
+                                    ) : friendsList.length > 0 ? (
+                                        <div className="space-y-1">
+                                            <div className="px-3 py-2 text-xs font-semibold text-white/40 uppercase tracking-wider">Your Friends</div>
+                                            {friendsList.map(renderUser)}
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 text-center flex flex-col items-center justify-center text-white/30 space-y-3">
+                                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                                                <Search className="w-6 h-6" />
+                                            </div>
+                                            <div className="text-sm">
+                                                <p>Type <kbd className="bg-white/10 px-1 rounded text-xs mx-1">@</kbd> to search by username</p>
+                                                <p className="mt-1">Type <kbd className="bg-white/10 px-1 rounded text-xs mx-1">#</kbd> to search by email</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </motion.div>

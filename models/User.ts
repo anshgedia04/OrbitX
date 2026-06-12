@@ -22,6 +22,7 @@ export interface IUser extends Document {
     subscriptionId?: string;
     subscriptionPlan?: string;
     subscriptionExpiry?: Date;
+    publicKey?: string;
     friends: mongoose.Types.ObjectId[];
     createdAt: Date;
     updatedAt: Date;
@@ -49,6 +50,7 @@ const UserSchema: Schema = new Schema({
     subscriptionId: { type: String },
     subscriptionPlan: { type: String },
     subscriptionExpiry: { type: Date },
+    publicKey: { type: String },
     friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, {
     timestamps: true,

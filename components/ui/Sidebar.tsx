@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ChevronLeft,
@@ -14,7 +14,8 @@ import {
     Trash2,
     ChevronDown,
     Rocket,
-    Star
+    Star,
+    MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./Button";
@@ -26,9 +27,12 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 interface SidebarProps {
     className?: string;
+    onTalkToggle?: () => void;
+    isTalkOpen?: boolean;
+    isLocked?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTalkOpen, isLocked = false }) => {
     const router = useRouter();
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -41,6 +45,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     const { showToast } = useToast();
     const { user } = useAuth();
     const isAiPage = pathname === "/ai";
+
+    // When locked (e.g. /chat page), force sidebar expanded
+    useEffect(() => {
+        if (isLocked) setIsCollapsed(false);
+    }, [isLocked]);
 
     React.useEffect(() => {
         fetchFolders();
@@ -165,47 +174,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 className
             )}
         >
-            {/* Toggle Button */}
-            <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-8 bg-primary text-white p-1 rounded-full shadow-lg border border-white/20 hover:scale-110 transition-transform z-10"
-            >
-                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
+            {/* Toggle Button — hidden when sidebar is locked */}
+            {!isLocked && (
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="absolute -right-3 top-8 bg-primary text-white p-1 rounded-full shadow-lg border border-white/20 hover:scale-110 transition-transform z-10 cursor-pointer"
+                >
+                    {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
+            )}
 
             {/* Header */}
             <div className="p-6 flex items-center gap-3 overflow-hidden whitespace-nowrap">
-                {isAiPage ? (
-                    // AI Page Logo
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-2"
-                    >
-                        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
-                            <img src="/OrbitX AI.png" alt="OrbitX AI" className="w-full h-full object-cover" />
-                        </div>
-                        <motion.span
-                            animate={{ opacity: isCollapsed ? 0 : 1 }}
-                            className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
-                        >
-                            OrbitX AI
-                        </motion.span>
-                    </motion.div>
-                ) : (
-                    // Standard Logo
-                    <>
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
-                            <Rocket className="w-5 h-5 text-white animate-pulse" />
-                        </div>
-                        <motion.span
-                            animate={{ opacity: isCollapsed ? 0 : 1 }}
-                            className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70"
-                        >
-                            OrbitX
-                        </motion.span>
-                    </>
-                )}
+            {isAiPage ? (
+                // AI Page Logo
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <img src="/OrbitX AI.png" alt="OrbitX AI" className="w-full h-full object-cover" />
+                    </div>
+                    <motion.span animate={{ opacity: isCollapsed ? 0 : 1 }} className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                        OrbitX AI
+                    </motion.span>
+                </motion.div>
+            ) : (
+                // Standard Logo
+                <>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
+                        <Rocket className="w-5 h-5 text-white animate-pulse" />
+                    </div>
+                    <motion.span animate={{ opacity: isCollapsed ? 0 : 1 }} className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+                        OrbitX
+                    </motion.span>
+                </>
+            )}
             </div>
 
             {isAiPage ? (
@@ -214,24 +215,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                     {!isCollapsed && (
                         <div className="text-xs font-semibold uppercase text-white/40 mb-2 px-2">History</div>
                     )}
-
                     <div className="space-y-1">
-                        {/* Placeholder History Items */}
-                        <div className="px-3 py-2 rounded-lg bg-white/5 text-sm text-white/70 truncate border-l-2 border-primary cursor-pointer hover:bg-white/10 transition-colors">
-                            Previous chat about React...
-                        </div>
-                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">
-                            Ideas for marketing...
-                        </div>
-                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">
-                            Meeting notes summary...
-                        </div>
+                        <div className="px-3 py-2 rounded-lg bg-white/5 text-sm text-white/70 truncate border-l-2 border-primary cursor-pointer hover:bg-white/10 transition-colors">Previous chat about React...</div>
+                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Ideas for marketing...</div>
+                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Meeting notes summary...</div>
                     </div>
-
                     {!isCollapsed && (
-                        <div className="mt-8 text-center text-xs text-white/20 px-4">
-                            Values generated by AI may be inaccurate.
-                        </div>
+                        <div className="mt-8 text-center text-xs text-white/20 px-4">Values generated by AI may be inaccurate.</div>
                     )}
                 </div>
             ) : (
@@ -265,6 +255,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                             isCollapsed={isCollapsed}
                             active={pathname === "/notes"}
                             onClick={() => router.push("/notes")}
+                        />
+                        <NavItem
+                            icon={<MessageCircle size={20} />}
+                            label="Let's Talk"
+                            isCollapsed={isCollapsed}
+                            active={!!isTalkOpen}
+                            onClick={() => onTalkToggle?.()}
                         />
                         <NavItem
                             icon={<Star size={20} />}

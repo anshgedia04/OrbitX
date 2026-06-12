@@ -82,7 +82,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
 
                         {/* Friend Requests */}
                         <button 
-                            className="p-2 text-white/50 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-medium"
+                            className="p-2 text-white/50 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-medium cursor-pointer"
                             title="Find Friends"
                             onClick={() => {
                                 if (!user?.username) {
@@ -99,7 +99,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
                         <div className="relative">
                             <button 
                                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                                className="p-2 text-white/50 hover:text-white transition-colors relative"
+                                className="p-2 text-white/50 hover:text-white transition-colors relative cursor-pointer"
                             >
                                 <Bell size={20} />
                                 {/* Optional: A real unread count would require fetching in TopBar, but we'll show red dot for now */}
