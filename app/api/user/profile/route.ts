@@ -122,6 +122,10 @@ export async function PUT(req: NextRequest) {
             { new: true }
         ).select("-passwordHash");
 
+        if (!updatedUser) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
         // Update or create UserName record
         if (newUsername) {
             await UserName.findOneAndUpdate(
