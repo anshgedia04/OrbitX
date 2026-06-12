@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         }
 
         const resetToken = generateToken({ userId: user._id.toString(), type: 'reset' });
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
         const emailHtml = `
