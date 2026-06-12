@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 require('dotenv').config();
 
 // Manually passed key if dotenv doesn't work in this specific test run context
-const apiKey = process.env.GOOGLE_AI_API_KEY || "AIzaSyDrferlfHtBC2_DRrbGa-pX3m3D0hxoECQ";
+const apiKey = process.env.GOOGLE_AI_API_KEY;
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
