@@ -9,6 +9,7 @@ import { useChatStore } from "@/store/use-chat-store";
 import { cn } from "@/lib/utils";
 import { useE2EE } from "@/hooks/useE2EE";
 import { encryptMessage, decryptMessage } from "@/lib/crypto";
+import { EmojiPickerPopup } from "@/components/chat/EmojiPickerPopup";
 
 interface ChatMessage {
     id: string;
@@ -37,7 +38,10 @@ function ChatContent() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
+    const [isEmojiOpen, setIsEmojiOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const emojiButtonRef = useRef<HTMLButtonElement>(null);
     const processedMessageIds = useRef<Set<string>>(new Set());
 
     // Fetch and decrypt messages from server
@@ -173,11 +177,30 @@ function ChatContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    const handleEmojiClick = (emoji: string) => {
+        const inputEl = inputRef.current;
+        if (!inputEl) {
+            setInput(prev => prev + emoji);
+            return;
+        }
+        const start = inputEl.selectionStart ?? input.length;
+        const end = inputEl.selectionEnd ?? input.length;
+        const newValue = input.slice(0, start) + emoji + input.slice(end);
+        setInput(newValue);
+        // Restore cursor position after emoji insertion
+        requestAnimationFrame(() => {
+            inputEl.focus();
+            const pos = start + emoji.length;
+            inputEl.setSelectionRange(pos, pos);
+        });
+    };
+
     const handleSend = async () => {
         const text = input.trim();
         if (!text || !friendId || !isReady || !user) return;
         
         setInput(""); // Optimistic clear
+        setIsEmojiOpen(false);
 
         try {
             const sharedSecret = await getSharedSecret(friendId);
@@ -387,11 +410,26 @@ function ChatContent() {
 
             {/* ── Input Area ── */}
             <div className="px-6 py-4 border-t border-white/8 bg-white/2 shrink-0">
-                <div className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-2xl px-4 py-2.5 focus-within:border-primary/40 focus-within:bg-white/8 transition-all duration-200 shadow-sm">
-                    <button className="text-white/28 hover:text-white/60 transition-colors cursor-pointer shrink-0">
+                <div className="relative flex items-center gap-3 bg-white/6 border border-white/10 rounded-2xl px-4 py-2.5 focus-within:border-primary/40 focus-within:bg-white/8 transition-all duration-200 shadow-sm">
+                    <EmojiPickerPopup
+                        isOpen={isEmojiOpen}
+                        onClose={() => setIsEmojiOpen(false)}
+                        onEmojiClick={handleEmojiClick}
+                        anchorRef={emojiButtonRef}
+                    />
+                    <button
+                        ref={emojiButtonRef}
+                        onClick={() => setIsEmojiOpen(prev => !prev)}
+                        className={cn(
+                            "transition-colors cursor-pointer shrink-0",
+                            isEmojiOpen ? "text-primary" : "text-white/28 hover:text-white/60"
+                        )}
+                        title="Emoji"
+                    >
                         <Smile size={19} />
                     </button>
                     <input
+                        ref={inputRef}
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
