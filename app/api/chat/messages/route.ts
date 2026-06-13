@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response';
-import { NextRequest } from 'next/dist/server/web/spec-extension/request';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { sql } from '@/lib/neon';
@@ -12,13 +12,15 @@ async function getAuth(req: NextRequest) {
         token = cookieStore.get('token')?.value;
     }
     if (!token) return null;
-    return await verifyToken(token);
+    // verifyToken is synchronous — do NOT await it
+    return verifyToken(token);
 }
 
 export async function GET(req: NextRequest) {
     try {
-        const decoded = await getAuth(req);
-        if (!decoded) {
+        const decoded = getAuth(req);
+        const resolvedDecoded = decoded instanceof Promise ? await decoded : decoded;
+        if (!resolvedDecoded) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'friendId is required' }, { status: 400 });
         }
 
-        const myId = decoded.userId;
+        const myId = resolvedDecoded.userId;
 
         const messages = await sql`
             SELECT id, sender_id, receiver_id, encrypted_content, iv, created_at
@@ -50,8 +52,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const decoded = await getAuth(req);
-        if (!decoded) {
+        const decoded = getAuth(req);
+        const resolvedDecoded = decoded instanceof Promise ? await decoded : decoded;
+        if (!resolvedDecoded) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        const myId = decoded.userId;
+        const myId = resolvedDecoded.userId;
 
         const result = await sql`
             INSERT INTO messages (sender_id, receiver_id, encrypted_content, iv)
@@ -70,10 +73,11 @@ export async function POST(req: NextRequest) {
             RETURNING id, created_at;
         `;
 
-        await sql`
+        // Clean up old messages asynchronously — don't block the response
+        sql`
             DELETE FROM messages
             WHERE created_at <= NOW() - INTERVAL '6 hours';
-        `;
+        `.catch(err => console.error('Cleanup error:', err));
 
         const messageData = {
             id: result[0].id,
@@ -84,16 +88,18 @@ export async function POST(req: NextRequest) {
             created_at: result[0].created_at
         };
 
-        // Determine deterministic channel name
+        // Build deterministic channel name — both IDs sorted so both users share the same channel
         const channelName = [myId, receiverId].sort().join('-');
-        
-        // Broadcast the message asynchronously
+
+        console.log(`[Pusher] Triggering on channel: ${channelName}`);
+
+        // Trigger Pusher event — fire and don't block the HTTP response
         pusherServer.trigger(channelName, 'new-message', messageData).catch(err => {
-            console.error('Failed to trigger pusher event:', err);
+            console.error('[Pusher] Failed to trigger event:', err);
         });
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             message: {
                 id: result[0].id,
                 created_at: result[0].created_at
