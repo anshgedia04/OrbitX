@@ -93,10 +93,14 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Pusher] Triggering on channel: ${channelName}`);
 
-        // Trigger Pusher event — fire and don't block the HTTP response
-        pusherServer.trigger(channelName, 'new-message', messageData).catch(err => {
-            console.error('[Pusher] Failed to trigger event:', err);
-        });
+        // ✅ MUST await on Vercel — serverless functions are killed the moment
+        // the response is returned, so fire-and-forget triggers never complete in production.
+        try {
+            await pusherServer.trigger(channelName, 'new-message', messageData);
+        } catch (pusherErr) {
+            // Log but don't fail the request — message is already saved to DB
+            console.error('[Pusher] Failed to trigger event:', pusherErr);
+        }
 
         return NextResponse.json({
             success: true,
