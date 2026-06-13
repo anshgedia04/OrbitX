@@ -98,13 +98,23 @@ function ChatContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [friendId, isReady, user]);
 
-    // Real-time Pusher effect
+    // ─── Initial + re-fetch effect ───────────────────────────────────────────
+    // Fires when the friend changes OR when E2EE finishes initializing.
+    // This is separate from the Pusher effect so we don't re-subscribe on every
+    // isReady change, while still fetching messages as soon as keys are available.
     useEffect(() => {
-        if (!hasFriend || !user?._id || !friendId) return;
-        
-        // Initial fetch
+        if (!hasFriend || !friendId || !isReady || !user) return;
         setIsLoadingMsgs(true);
         fetchMessages().finally(() => setIsLoadingMsgs(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasFriend, friendId, isReady]);
+
+    // ─── Real-time Pusher subscription ───────────────────────────────────────
+    // Only depends on the friend/user identity — NOT on isReady.
+    // The channel.bind handler calls getSharedSecret dynamically when a live
+    // message arrives, so it doesn't need isReady at subscribe time.
+    useEffect(() => {
+        if (!hasFriend || !user?._id || !friendId) return;
 
         let pusher: import('pusher-js').default | null = null;
         let channel: any = null;
