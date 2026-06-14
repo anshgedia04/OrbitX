@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
     generateKeyPair, 
     exportKey, 
@@ -10,9 +10,11 @@ import {
 export function useE2EE(userId?: string) {
     const [privateKey, setPrivateKey] = useState<CryptoKey | null>(null);
     const [isReady, setIsReady] = useState(false);
-    
-    // In-memory cache for shared secrets with friends
-    const [sharedSecrets, setSharedSecrets] = useState<Record<string, CryptoKey>>({});
+
+    // Use a ref for the cache so updates don't cause re-renders.
+    // Cache key = `${friendId}::${first20charsOfPubKey}` — auto-invalidates when the
+    // friend regenerates their key pair (e.g. clears localStorage or uses a new device).
+    const secretCache = useRef<Record<string, CryptoKey>>({});
 
     useEffect(() => {
         async function initKeys() {
@@ -28,7 +30,7 @@ export function useE2EE(userId?: string) {
                     setPrivateKey(key);
                     setIsReady(true);
                     
-                    // Re-sync public key to server just in case a different browser overwrote it
+                    // Re-sync public key to server (in case another device overwrote it)
                     fetch('/api/chat/keys', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -41,8 +43,6 @@ export function useE2EE(userId?: string) {
                     const exportedPriv = await exportKey(keyPair.privateKey);
                     const exportedPub = await exportKey(keyPair.publicKey);
                     
-                    const storageKey = `orbitx_e2ee_priv_${userId}`;
-                    const pubStorageKey = `orbitx_e2ee_pub_${userId}`;
                     localStorage.setItem(storageKey, exportedPriv);
                     localStorage.setItem(pubStorageKey, exportedPub);
                     
@@ -66,32 +66,43 @@ export function useE2EE(userId?: string) {
     const getSharedSecret = useCallback(async (friendId: string): Promise<CryptoKey | null> => {
         if (!privateKey) return null;
         
-        // Return from cache if we already derived it
-        if (sharedSecrets[friendId]) {
-            return sharedSecrets[friendId];
-        }
-
         try {
-            // Fetch friend's public key
+            // Always fetch the current public key from the server.
+            // This is a small request and ensures we always have the latest key.
+            // If the friend regenerated their keys, we re-derive the shared secret automatically.
             const res = await fetch(`/api/chat/keys?friendId=${friendId}`);
-            if (!res.ok) throw new Error('Failed to fetch friend public key');
+            if (!res.ok) return null;
             
             const { publicKey: friendPubStr } = await res.json();
             if (!friendPubStr) {
                 console.warn(`Friend ${friendId} has not set up E2EE yet.`);
-                return null; // Cannot chat until they log in and generate keys
+                return null;
+            }
+
+            // Cache key includes a fingerprint of the public key.
+            // If the friend's key changes, this produces a different key → cache miss → re-derive.
+            const fingerprint = friendPubStr.slice(20, 60);
+            const cacheKey = `${friendId}::${fingerprint}`;
+            
+            if (secretCache.current[cacheKey]) {
+                return secretCache.current[cacheKey];
             }
 
             const friendPubKey = await importPublicKey(friendPubStr);
             const secret = await deriveSharedSecret(privateKey, friendPubKey);
             
-            setSharedSecrets(prev => ({ ...prev, [friendId]: secret }));
+            secretCache.current[cacheKey] = secret;
             return secret;
         } catch (err) {
             console.error('Failed to derive shared secret:', err);
             return null;
         }
-    }, [privateKey, sharedSecrets]);
+    }, [privateKey]);
 
-    return { isReady, getSharedSecret };
+    // Clear secret cache when switching friends (component stays mounted)
+    const clearSecretCache = useCallback(() => {
+        secretCache.current = {};
+    }, []);
+
+    return { isReady, getSharedSecret, clearSecretCache };
 }

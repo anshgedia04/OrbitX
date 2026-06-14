@@ -139,15 +139,24 @@ export async function decryptMessage(
     const ciphertext = base64ToBuffer(encryptedContentBase64);
     const iv = base64ToBuffer(ivBase64);
     
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-        {
-            name: "AES-GCM",
-            iv: new Uint8Array(iv) as any,
-        },
-        sharedSecret,
-        ciphertext
-    );
-    
-    const dec = new TextDecoder();
-    return dec.decode(decryptedBuffer);
+    try {
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: new Uint8Array(iv) as any,
+            },
+            sharedSecret,
+            ciphertext
+        );
+        const dec = new TextDecoder();
+        return dec.decode(decryptedBuffer);
+    } catch {
+        // AES-GCM throws a generic OperationError when the auth tag doesn't match.
+        // This almost always means the shared secret is wrong (key mismatch).
+        throw new Error(
+            "Decryption failed: key mismatch. " +
+            "This usually means one party regenerated their E2EE key pair. " +
+            "Old messages encrypted with the previous key cannot be recovered."
+        );
+    }
 }

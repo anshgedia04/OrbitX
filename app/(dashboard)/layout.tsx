@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import { useChatStore } from "@/store/use-chat-store";
+import { useFCM } from "@/hooks/useFCM";
 
 // TalkPanel width in px — must match the motion.div width below
 const TALK_PANEL_WIDTH = 288;
@@ -42,6 +43,9 @@ function DashboardContent({
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
     const [isTalkPanelOpen, setIsTalkPanelOpen] = useState(false);
     const { activeFriend, setActiveFriend } = useChatStore();
+
+    // Request push notification permission as soon as the user is logged in
+    useFCM((user as any)?._id);
 
     const isAiPage = pathname === "/ai";
     const isChatPage = pathname.startsWith("/chat");
