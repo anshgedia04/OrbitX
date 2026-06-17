@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -162,7 +162,7 @@ const AI_MODELS: AIModel[] = [
 
 ];
 
-export default function AIPage() {
+function AIPageContent() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -947,5 +947,13 @@ export default function AIPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AIPage() {
+    return (
+        <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader /></div>}>
+            <AIPageContent />
+        </Suspense>
     );
 }

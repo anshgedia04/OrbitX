@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
@@ -111,11 +111,13 @@ function DashboardContent({
 
             {/* ── Left Sidebar — locked open on chat page ── */}
             <div className="hidden lg:block h-full shrink-0">
-                <Sidebar
-                    onTalkToggle={handleTalkToggle}
-                    isTalkOpen={isTalkPanelOpen}
-                    isLocked={isChatPage}
-                />
+                <Suspense fallback={<div className="w-20 lg:w-[280px] h-full bg-secondary/40 backdrop-blur-xl border-r border-white/10" />}>
+                    <Sidebar
+                        onTalkToggle={handleTalkToggle}
+                        isTalkOpen={isTalkPanelOpen}
+                        isLocked={isChatPage}
+                    />
+                </Suspense>
             </div>
 
             {/* ── Mobile Sidebar Drawer ── */}
@@ -136,11 +138,13 @@ function DashboardContent({
                             transition={{ type: "spring", damping: 20 }}
                             className="fixed inset-y-0 left-0 z-50 lg:hidden"
                         >
-                            <Sidebar
-                                onTalkToggle={handleTalkToggle}
-                                isTalkOpen={isTalkPanelOpen}
-                                isLocked={isChatPage}
-                            />
+                            <Suspense fallback={<div className="w-[280px] h-full bg-secondary/40 backdrop-blur-xl" />}>
+                                <Sidebar
+                                    onTalkToggle={handleTalkToggle}
+                                    isTalkOpen={isTalkPanelOpen}
+                                    isLocked={isChatPage}
+                                />
+                            </Suspense>
                         </motion.div>
                     </>
                 )}
