@@ -73,7 +73,16 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    return NextResponse.next();
+    const response = NextResponse.next();
+
+    // Force strict no-caching on all API routes to prevent data leakage across users
+    if (path.startsWith('/api')) {
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
+    }
+
+    return response;
 }
 
 export const config = {

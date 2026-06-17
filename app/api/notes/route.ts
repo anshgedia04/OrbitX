@@ -73,10 +73,6 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        // Add caching headers for performance
-        // Cache for 60 seconds, revalidate after
-        response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
-
         return response;
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
