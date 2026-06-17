@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
 
         if (tag) query.tags = tag;
         if (favorite === "true") query.isFavorite = true;
+        
+        const aiProcessed = searchParams.get("aiProcessed");
+        if (aiProcessed === "true") query.isAiProcessed = true;
+
         if (search) {
             query.$or = [
                 { title: { $regex: search, $options: "i" } },
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
         // Select only needed fields for list view to reduce payload size
         // Exclude content if it's too large, or just select what we need
         const notes = await Note.find(query)
-            .select("title type tags isFavorite updatedAt folder language isShared")
+            .select("title type tags isFavorite updatedAt folder language isShared isAiProcessed")
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(limit);

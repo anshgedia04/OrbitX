@@ -19,7 +19,8 @@ import {
     Calendar,
     Eye,
     Copy,
-    Check
+    Check,
+    Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Loader } from "@/components/ui/Loader";
@@ -137,6 +138,12 @@ export default function NotePage() {
                     <Button variant="ghost" size="sm" onClick={handlePrint} className="text-white/50 hover:text-white">
                         <Download size={20} />
                     </Button>
+                    <Link href={`/ai?processNoteId=${note._id}`}>
+                        <Button variant="ghost" size="sm" className="text-white/50 hover:text-violet-400 group flex items-center gap-2">
+                            <Bot size={20} className="group-hover:animate-pulse" />
+                            <span className="hidden sm:inline text-xs font-semibold">Chat with AI</span>
+                        </Button>
+                    </Link>
                     <Link href={`/notes/${note._id}/edit`}>
                         <Button variant="ghost" size="sm" className="text-white/50 hover:text-white">
                             <Edit size={20} />

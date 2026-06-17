@@ -19,9 +19,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./Button";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useUIStore } from "@/store/use-ui-store";
 import { StorageLimitModal } from "./StorageLimitModal";
+import { Modal } from "./Modal";
 import { useToast } from "./Toast";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -40,6 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
     const [folders, setFolders] = useState<any[]>([]);
     const [creatingFolderParentId, setCreatingFolderParentId] = useState<string | null>(null);
     const [newFolderName, setNewFolderName] = useState("");
+    const [aiProcessedNotes, setAiProcessedNotes] = useState<any[]>([]);
+    const searchParams = useSearchParams();
+    const activeContextNoteId = searchParams.get("contextNoteId");
+    const [noteToDelete, setNoteToDelete] = useState<{ id: string, title: string } | null>(null);
+    const [isDeletingNote, setIsDeletingNote] = useState(false);
 
     const { foldersUpdated, triggerFolderRefresh, storageUsage, setStorageUsage } = useUIStore();
     const { showToast } = useToast();
@@ -54,7 +60,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
     React.useEffect(() => {
         fetchFolders();
         fetchStorage();
-    }, [foldersUpdated]);
+        if (isAiPage) {
+            fetchAiProcessedNotes();
+        }
+    }, [foldersUpdated, isAiPage, activeContextNoteId]);
+
+    const fetchAiProcessedNotes = async () => {
+        try {
+            const response = await fetch("/api/notes?aiProcessed=true&limit=10");
+            if (response.ok) {
+                const data = await response.json();
+                setAiProcessedNotes(data.notes || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch AI processed notes");
+        }
+    };
 
     const fetchStorage = async () => {
         try {
@@ -115,6 +136,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
         }
     };
 
+    const confirmDeleteProcessedNote = async () => {
+        if (!noteToDelete) return;
+        setIsDeletingNote(true);
+        try {
+            const res = await fetch(`/api/ai/process-note?noteId=${noteToDelete.id}`, {
+                method: "DELETE"
+            });
+            
+            if (res.ok) {
+                setAiProcessedNotes(prev => prev.filter(n => n._id !== noteToDelete.id));
+                showToast("Note removed from AI context", "success");
+                
+                // If we are currently chatting with this note, clear the context
+                if (activeContextNoteId === noteToDelete.id) {
+                    router.push('/ai');
+                }
+            } else {
+                const data = await res.json();
+                showToast(data.error || "Failed to remove note", "error");
+            }
+        } catch (error) {
+            console.error("Failed to delete processed note:", error);
+            showToast("Failed to remove note", "error");
+        } finally {
+            setIsDeletingNote(false);
+            setNoteToDelete(null);
+        }
+    };
+
+    const handleDeleteProcessedNote = (e: React.MouseEvent, noteId: string, title: string) => {
+        e.stopPropagation();
+        setNoteToDelete({ id: noteId, title });
+    };
+
     const sidebarVariants = {
         expanded: { width: 280 },
         collapsed: { width: 80 }
@@ -165,6 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
     );
 
     return (
+        <>
         <motion.div
             initial="expanded"
             animate={isCollapsed ? "collapsed" : "expanded"}
@@ -220,6 +276,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
                         <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Ideas for marketing...</div>
                         <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Meeting notes summary...</div>
                     </div>
+
+                    {!isCollapsed && (
+                        <div className="text-xs font-semibold uppercase text-white/40 mt-6 mb-2 px-2 flex items-center gap-2">
+                            <FileText size={12} /> Processed Notes Context
+                        </div>
+                    )}
+                    <div className="space-y-1">
+                        {aiProcessedNotes.length > 0 ? (
+                            aiProcessedNotes.map(note => (
+                                <div 
+                                    key={note._id}
+                                    onClick={() => router.push(`/ai?contextNoteId=${note._id}`)}
+                                    className={cn(
+                                        "px-3 py-2 rounded-lg text-sm text-white/70 truncate cursor-pointer transition-colors flex items-center justify-between group",
+                                        activeContextNoteId === note._id
+                                            ? "bg-violet-500/10 border border-violet-500/30"
+                                            : "hover:bg-white/5"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <span className={cn(
+                                            "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                                            activeContextNoteId === note._id
+                                                ? "bg-violet-400"
+                                                : "bg-white/20"
+                                        )} />
+                                        <span className="truncate">{note.title}</span>
+                                    </div>
+                                    <button
+                                        onClick={(e) => handleDeleteProcessedNote(e, note._id, note.title)}
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400 transition-all flex-shrink-0 cursor-pointer"
+                                        title="Remove from AI context"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-3 py-2 text-xs text-white/30 italic">No notes loaded into AI yet.</div>
+                        )}
+                    </div>
+
                     {!isCollapsed && (
                         <div className="mt-8 text-center text-xs text-white/20 px-4">Values generated by AI may be inaccurate.</div>
                     )}
@@ -370,7 +468,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
                 </div>
             </div>
             <StorageLimitModal />
+
         </motion.div>
+
+        {/* Note Deletion Modal - Moved outside motion.div to prevent being trapped in sidebar */}
+        <Modal
+            isOpen={!!noteToDelete}
+            onClose={() => !isDeletingNote && setNoteToDelete(null)}
+            title="Remove from AI context?"
+        >
+            <div className="space-y-4">
+                <p className="text-sm text-white/70">
+                    Are you sure you want to remove <span className="text-white font-medium">"{noteToDelete?.title}"</span> from your AI context?
+                </p>
+                <p className="text-xs text-red-400/80 bg-red-400/10 p-3 rounded border border-red-400/20">
+                    This will permanently delete all vector embeddings generated for this note and clear its chat history. The original note itself will <strong>not</strong> be deleted.
+                </p>
+                <div className="flex justify-end gap-3 mt-6">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setNoteToDelete(null)}
+                        disabled={isDeletingNote}
+                        className="cursor-pointer"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        className="bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 cursor-pointer"
+                        onClick={confirmDeleteProcessedNote}
+                        disabled={isDeletingNote}
+                    >
+                        {isDeletingNote ? "Removing..." : "Yes, Remove it"}
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+        </>
     );
 };
 

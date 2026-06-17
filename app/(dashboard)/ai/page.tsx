@@ -2,10 +2,10 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Send, Bot, User, Wand2, ChevronDown, Check, Cpu } from "lucide-react";
+import { Send, Bot, User, Wand2, ChevronDown, Check, Cpu, FileText } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -165,6 +165,11 @@ const AI_MODELS: AIModel[] = [
 export default function AIPage() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const processNoteId = searchParams.get("processNoteId");
+    const contextNoteId = searchParams.get("contextNoteId");
+
+    const [isProcessingNote, setIsProcessingNote] = useState(false);
 
     useEffect(() => {
         if (!isAuthLoading && user?.subscriptionStatus !== 'pro') {
@@ -172,23 +177,45 @@ export default function AIPage() {
         }
     }, [user, isAuthLoading, router]);
 
-    // Use a combined loading state to prevent flash of content
-    if (isAuthLoading || (user && user.subscriptionStatus !== 'pro')) {
-        return (
-            <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
-                <Loader size="lg" />
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (!processNoteId) return;
+        
+        const processNote = async () => {
+            setIsProcessingNote(true);
+            try {
+                const response = await fetch("/api/ai/process-note", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ noteId: processNoteId }),
+                });
+                
+                if (response.ok) {
+                    setIsProcessingNote(false);
+                    router.replace(`/ai?contextNoteId=${processNoteId}`);
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    console.error("Failed to process note:", errData);
+                    alert(`Failed to process note: ${errData?.error || "Unknown error"}`);
+                    setIsProcessingNote(false);
+                    router.replace('/ai');
+                }
+            } catch (error) {
+                console.error("Error processing note:", error);
+                setIsProcessingNote(false);
+            }
+        };
+        processNote();
+    }, [processNoteId, router]);
 
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: "welcome",
-            role: "assistant",
-            content: "How can I help you with your notes today?",
-            timestamp: new Date()
-        }
-    ]);
+
+    const WELCOME_MSG: Message = {
+        id: "welcome",
+        role: "assistant",
+        content: "How can I help you with your notes today?",
+        timestamp: new Date()
+    };
+
+    const [messages, setMessages] = useState<Message[]>([WELCOME_MSG]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id);
@@ -217,6 +244,41 @@ export default function AIPage() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    // Load note-specific chat history from Neon when contextNoteId changes
+    useEffect(() => {
+        if (!contextNoteId) {
+            setMessages([WELCOME_MSG]);
+            return;
+        }
+        const loadHistory = async () => {
+            try {
+                const res = await fetch(`/api/ai/note-chats?noteId=${contextNoteId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.chats && data.chats.length > 0) {
+                    const loaded: Message[] = data.chats.map((row: any) => ({
+                        id: row.id,
+                        role: row.role as "user" | "assistant",
+                        content: row.content,
+                        timestamp: new Date(row.created_at),
+                    }));
+                    setMessages(loaded);
+                } else {
+                    setMessages([{
+                        id: "note-welcome",
+                        role: "assistant",
+                        content: "Your note has been processed! Ask me anything about it.",
+                        timestamp: new Date()
+                    }]);
+                }
+            } catch (e) {
+                console.error("Failed to load note chat history:", e);
+            }
+        };
+        loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contextNoteId]);
+
     // Scroll handler to detect if user is manually scrolling up
     const handleScroll = useCallback(() => {
         if (!scrollRef.current) return;
@@ -232,6 +294,25 @@ export default function AIPage() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, isUserScrolling]);
+
+    // Use a combined loading state to prevent flash of content
+    if (isAuthLoading || (user && user.subscriptionStatus !== 'pro')) {
+        return (
+            <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+                <Loader size="lg" />
+            </div>
+        );
+    }
+
+    if (isProcessingNote) {
+        return (
+            <div className="h-[calc(100vh-8rem)] flex flex-col items-center justify-center gap-4">
+                <Loader size="lg" />
+                <div className="text-white/60 font-medium">Reading and chunking your note...</div>
+                <div className="text-white/30 text-xs">Generating embeddings with Hugging Face</div>
+            </div>
+        );
+    }
 
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
@@ -252,7 +333,7 @@ export default function AIPage() {
             const response = await fetch("/api/ai/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages: newMessages, model: selectedModel }),
+                body: JSON.stringify({ messages: newMessages, model: selectedModel, contextNoteId }),
             });
 
             if (!response.ok) {
@@ -332,6 +413,10 @@ export default function AIPage() {
                         }
                     }
                 }
+                // ✅ Save to Neon once streaming is fully done
+                if (fullContent && contextNoteId) {
+                    saveNoteChat(userMessage.content, fullContent);
+                }
             } else {
                 // Fallback for models still using basic JSON format
                 const data = await response.json();
@@ -342,6 +427,10 @@ export default function AIPage() {
                     thinking: data.thinking,
                     timestamp: new Date()
                 }]);
+                // ✅ Save to Neon
+                if (data.message && contextNoteId) {
+                    saveNoteChat(userMessage.content, data.message);
+                }
             }
         } catch (error: any) {
             console.error("Chat Error:", error);
@@ -357,6 +446,39 @@ export default function AIPage() {
         }
     };
 
+    // Save last user+assistant exchange to Neon for note-specific history
+    const saveNoteChat = async (userContent: string, assistantContent: string) => {
+        if (!contextNoteId) return;
+        try {
+            await fetch("/api/ai/note-chats", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    noteId: contextNoteId,
+                    userMessage: userContent,
+                    assistantMessage: assistantContent,
+                }),
+            });
+        } catch (e) {
+            console.error("Failed to save note chat:", e);
+        }
+    };
+
+    const clearNoteChat = async () => {
+        if (!contextNoteId) return;
+        try {
+            await fetch(`/api/ai/note-chats?noteId=${contextNoteId}`, { method: "DELETE" });
+            setMessages([{
+                id: "note-welcome",
+                role: "assistant",
+                content: "Chat history cleared! Ask me anything about your note.",
+                timestamp: new Date()
+            }]);
+        } catch (e) {
+            console.error("Failed to clear note chat:", e);
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -365,9 +487,30 @@ export default function AIPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex flex-col max-w-5xl mx-auto px-2 sm:px-0">
+        <div className="h-full flex flex-col">
+            {contextNoteId && (
+                <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 flex items-center gap-2 text-sm text-primary shrink-0">
+                    <FileText size={14} />
+                    <span className="font-semibold">AI is now chatting specifically with this note.</span>
+                    <div className="ml-auto flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-white/40 hover:text-red-400 text-xs"
+                            onClick={clearNoteChat}
+                            title="Clear chat history for this note"
+                        >
+                            Clear Chat
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-white" onClick={() => router.push('/ai')}>
+                            Exit Note
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Chat Container */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden max-w-5xl mx-auto px-4 sm:px-8 py-4 sm:py-8 w-full">
                 {/* Messages Area */}
                 <div
                     ref={scrollRef}

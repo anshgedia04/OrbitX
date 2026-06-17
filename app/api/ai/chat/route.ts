@@ -72,6 +72,8 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
+import NoteEmbedding from "@/models/NoteEmbedding";
+import Note from "@/models/Note";
 
 // ... existing imports
 
@@ -292,7 +294,7 @@ export async function POST(req: NextRequest) {
 
     };
 
-    const { messages, model: requestedModel } = await req.json();
+    const { messages, model: requestedModel, contextNoteId } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
@@ -303,6 +305,104 @@ export async function POST(req: NextRequest) {
     }
 
     const modelConfig = requestedModel ? MODEL_REGISTRY[requestedModel] : null;
+
+    // ── Context Injection via Vector Search (RAG) ─────────────────────
+    let ragContextText = "";
+    if (contextNoteId) {
+      try {
+        const geminiKey = process.env.GOOGLE_AI_API_KEY;
+        if (geminiKey) {
+            // Embed the user's query using Gemini gemini-embedding-001 (3072 dimensions)
+            const embRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiKey}`,
+              {
+                headers: { "Content-Type": "application/json" },
+                method: "POST",
+                body: JSON.stringify({
+                  content: { parts: [{ text: lastUserMessage }] },
+                }),
+              }
+            );
+
+            if (embRes.ok) {
+              const embData = await embRes.json();
+              const vector: number[] = embData.embedding?.values;
+
+              if (Array.isArray(vector) && vector.length > 0) {
+                const mongoose = require("mongoose");
+                const pipeline = [
+                  {
+                    "$vectorSearch": {
+                      "index": "vector_index",
+                      "path": "embedding",
+                      "queryVector": vector,
+                      "numCandidates": 50,   // Cast wider net
+                      "limit": 8,            // Get top 8, then filter
+                      "filter": {
+                        "noteId": { "$eq": mongoose.Types.ObjectId.createFromHexString(contextNoteId) }
+                      }
+                    }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "text": 1,
+                      "chunkIndex": 1,
+                      "score": { "$meta": "vectorSearchScore" }
+                    }
+                  }
+                ];
+
+                const relevantChunks = await NoteEmbedding.aggregate(pipeline);
+
+                if (relevantChunks && relevantChunks.length > 0) {
+                  // Filter by minimum similarity score (0.55 = 55% match minimum)
+                  const SCORE_THRESHOLD = 0.55;
+                  const filtered = relevantChunks.filter((c: any) => c.score >= SCORE_THRESHOLD);
+
+                  // Use filtered chunks if we have any, otherwise fall back to top 3
+                  const toUse = filtered.length > 0 ? filtered : relevantChunks.slice(0, 3);
+
+                  // Sort by chunk order (chunkIndex) for natural reading order
+                  toUse.sort((a: any, b: any) => a.chunkIndex - b.chunkIndex);
+
+                  // Deduplicate: remove chunks whose text is 80%+ similar to an already-added chunk
+                  const deduped: string[] = [];
+                  for (const chunk of toUse) {
+                    const isDuplicate = deduped.some(existing => {
+                      const shorter = Math.min(existing.length, chunk.text.length);
+                      const overlap = existing.includes(chunk.text.slice(0, Math.floor(shorter * 0.8)));
+                      return overlap;
+                    });
+                    if (!isDuplicate) deduped.push(chunk.text);
+                  }
+
+                  ragContextText = deduped.join("\n\n---\n\n");
+                }
+              }
+            }
+        }
+      } catch (err) {
+        console.error("Vector search error:", err);
+      }
+    }
+
+    // Attach RAG Context to System Prompt
+    const systemInstruction = modelConfig?.systemPrompt || "You are a helpful AI assistant.";
+    const finalSystemPrompt = ragContextText
+      ? `${systemInstruction}
+
+=== CONTEXT FROM USER'S NOTE ===
+${ragContextText}
+=== END OF NOTE CONTEXT ===
+
+Instructions for using the context above:
+1. Base your answer primarily on the NOTE CONTEXT provided.
+2. If the answer is clearly in the context, answer directly and cite the relevant part.
+3. If the question is only partially answered by the context, answer what you can from the context and clearly state what falls outside the note.
+4. If the question is completely unrelated to the note context, say "This doesn't appear to be covered in your note." and then answer from general knowledge.
+5. Keep your answer concise and directly relevant.`
+      : systemInstruction;
 
     // ── Route to the correct provider ──────────────────────────────────
     if (!modelConfig) {
@@ -358,7 +458,7 @@ export async function POST(req: NextRequest) {
             role: m.role === "user" ? "user" : "model",
             parts: [{ text: m.content }],
           })),
-        systemInstruction: modelConfig.systemPrompt ? { parts: [{ text: modelConfig.systemPrompt }], role: "system" } : undefined,
+        systemInstruction: finalSystemPrompt ? { parts: [{ text: finalSystemPrompt }], role: "system" } : undefined,
       });
 
       const streamResult = await chat.sendMessageStream(lastUserMessage);
@@ -379,8 +479,8 @@ export async function POST(req: NextRequest) {
     // ── Sarvam AI provider ─────────────────────────────────────────────
     if (modelConfig.provider === "sarvam") {
       const sarvamMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        ...(modelConfig.systemPrompt
-          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+        ...(finalSystemPrompt
+          ? [{ role: "system" as const, content: finalSystemPrompt }]
           : []),
         ...messages
           .filter((m: any) => m.id !== "welcome")
@@ -402,8 +502,8 @@ export async function POST(req: NextRequest) {
     // ── OpenRouter provider ────────────────────────────────────────────
     if (modelConfig.provider === "openrouter") {
       const openRouterMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        ...(modelConfig.systemPrompt
-          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+        ...(finalSystemPrompt
+          ? [{ role: "system" as const, content: finalSystemPrompt }]
           : []),
         ...messages
           .filter((m: any) => m.id !== "welcome")
@@ -428,8 +528,8 @@ export async function POST(req: NextRequest) {
     // ── GitHub Models provider ─────────────────────────────────────────
     if (modelConfig.provider === "github") {
       const githubMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        ...(modelConfig.systemPrompt
-          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+        ...(finalSystemPrompt
+          ? [{ role: "system" as const, content: finalSystemPrompt }]
           : []),
         ...messages
           .filter((m: any) => m.id !== "welcome")
@@ -453,8 +553,8 @@ export async function POST(req: NextRequest) {
     // ── Groq provider ──────────────────────────────────────────────────
     if (modelConfig.provider === "groq") {
       const groqMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        ...(modelConfig.systemPrompt
-          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+        ...(finalSystemPrompt
+          ? [{ role: "system" as const, content: finalSystemPrompt }]
           : []),
         ...messages
           .filter((m: any) => m.id !== "welcome")
@@ -478,8 +578,8 @@ export async function POST(req: NextRequest) {
     // ── Nvidia provider ────────────────────────────────────────────────
     if (modelConfig.provider === "nvidia") {
       const nvidiaMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        ...(modelConfig.systemPrompt
-          ? [{ role: "system" as const, content: modelConfig.systemPrompt }]
+        ...(finalSystemPrompt
+          ? [{ role: "system" as const, content: finalSystemPrompt }]
           : []),
         ...messages
           .filter((m: any) => m.id !== "welcome")

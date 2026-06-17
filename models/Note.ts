@@ -17,6 +17,7 @@ export interface INote extends Document {
     shareToken?: string;
     shareExpiresAt?: Date;
     sharePermissions: 'read' | 'edit';
+    isAiProcessed?: boolean;
 }
 
 const NoteSchema: Schema = new Schema({
@@ -35,6 +36,7 @@ const NoteSchema: Schema = new Schema({
     shareToken: { type: String, unique: true, sparse: true },
     shareExpiresAt: { type: Date },
     sharePermissions: { type: String, enum: ['read', 'edit'], default: 'read' },
+    isAiProcessed: { type: Boolean, default: false },
 }, {
     timestamps: true,
 });
