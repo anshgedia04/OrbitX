@@ -5,6 +5,8 @@ import User from '@/models/User';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 async function getAuth(req: NextRequest) {
     let token = req.headers.get("authorization")?.split(" ")[1];
     if (!token) {

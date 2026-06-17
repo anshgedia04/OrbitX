@@ -38,6 +38,7 @@ function ChatContent() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
+    const [isPusherConnected, setIsPusherConnected] = useState(false);
     const [isEmojiOpen, setIsEmojiOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -110,34 +111,43 @@ function ChatContent() {
     }, [hasFriend, friendId, isReady]);
 
     // ─── Real-time Pusher subscription ───────────────────────────────────────
-    // Only depends on the friend/user identity — NOT on isReady.
-    // The channel.bind handler calls getSharedSecret dynamically when a live
-    // message arrives, so it doesn't need isReady at subscribe time.
     useEffect(() => {
-        if (!hasFriend || !user?._id || !friendId) return;
+        if (!hasFriend || !user?._id || !friendId || !isReady) return;
 
         let pusher: import('pusher-js').default | null = null;
         let channel: any = null;
+        let isCancelled = false;
 
         async function initPusher() {
             try {
                 const res = await fetch('/api/pusher/config');
                 const { key, cluster } = await res.json();
                 
-                if (!key || !cluster) return;
+                if (isCancelled || !key || !cluster) return;
 
                 const PusherClient = (await import('pusher-js')).default;
-                pusher = new PusherClient(key, { cluster });
+                if (isCancelled) return;
 
+                pusher = new PusherClient(key, { cluster });
                 const channelName = [(user as any)._id as string, friendId as string].sort().join('-');
+                console.log("[Pusher] Connecting to channel:", channelName);
+                
                 channel = pusher.subscribe(channelName);
+
+                channel.bind('pusher:subscription_succeeded', () => {
+                    console.log("[Pusher] Subscription active for:", channelName);
+                    setIsPusherConnected(true);
+                });
 
                 channel.bind('new-message', async (msg: any) => {
                     if (processedMessageIds.current.has(msg.id)) return;
                     
                     try {
                         const sharedSecret = await getSharedSecret(friendId as string);
-                        if (!sharedSecret) return;
+                        if (!sharedSecret) {
+                            console.warn("[Pusher] E2EE not ready, dropping message");
+                            return;
+                        }
 
                         const text = await decryptMessage(msg.encrypted_content, msg.iv, sharedSecret);
                         
@@ -165,6 +175,7 @@ function ChatContent() {
         initPusher();
 
         return () => {
+            isCancelled = true;
             if (channel) {
                 channel.unbind_all();
                 channel.unsubscribe();
@@ -174,12 +185,13 @@ function ChatContent() {
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasFriend, (user as any)?._id, friendId]);
+    }, [hasFriend, (user as any)?._id, friendId, isReady]);
 
     // Clear messages when friend changes
     useEffect(() => {
         setMessages([]);
         processedMessageIds.current.clear();
+        setIsPusherConnected(false);
     }, [friendId]);
 
     // Auto-scroll on new messages
@@ -444,8 +456,12 @@ function ChatContent() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={!isReady ? "Initializing E2EE Keys..." : `Message ${friendName}...`}
-                        disabled={!isReady}
+                        placeholder={
+                            !isReady ? "Initializing E2EE Keys..." : 
+                            !isPusherConnected ? "Connecting to live chat..." : 
+                            `Message ${friendName}...`
+                        }
+                        disabled={!isReady || !isPusherConnected}
                         className="flex-1 bg-transparent text-sm text-white placeholder-white/22 focus:outline-none min-w-0"
                         autoFocus
                     />
@@ -453,10 +469,10 @@ function ChatContent() {
                         whileHover={{ scale: 1.08 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={handleSend}
-                        disabled={!input.trim() || !isReady}
+                        disabled={!input.trim() || !isReady || !isPusherConnected}
                         className={cn(
                             "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                            (input.trim() && isReady)
+                            (input.trim() && isReady && isPusherConnected)
                                 ? "bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 cursor-pointer"
                                 : "bg-white/5 text-white/18 cursor-not-allowed"
                         )}

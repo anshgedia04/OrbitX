@@ -8,6 +8,8 @@ import connectToDatabase from '@/lib/mongodb';
 import FCMToken from '@/models/FCMToken';
 import User from '@/models/User';
 
+export const dynamic = 'force-dynamic';
+
 async function getAuth(req: NextRequest) {
     let token = req.headers.get("authorization")?.split(" ")[1];
     if (!token) {
