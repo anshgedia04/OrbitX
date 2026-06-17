@@ -17,7 +17,9 @@ const DemoContent = () => {
 
     return (
         <div className="flex h-screen text-white overflow-hidden font-sans">
-            <Sidebar />
+            <React.Suspense fallback={<div className="w-20 lg:w-[280px] h-full bg-secondary/40 backdrop-blur-xl border-r border-white/10" />}>
+                <Sidebar />
+            </React.Suspense>
 
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <TopBar />
