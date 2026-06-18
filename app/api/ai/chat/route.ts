@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     const user = await User.findById(decoded.userId).select('subscriptionStatus');
 
-    if (!user || user.subscriptionStatus !== 'pro') {
+    if (!user || (user.subscriptionStatus !== 'pro' && user.subscriptionStatus !== 'plus')) {
       return NextResponse.json(
         { error: "This feature is only available for Pro users." },
         { status: 403 }

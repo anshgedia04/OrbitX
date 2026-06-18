@@ -4,7 +4,7 @@ import React, { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { TopBar } from "@/components/ui/TopBar";
-import { ToastProvider } from "@/components/ui/Toast";
+import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { ShortcutsModal } from "@/components/ui/ShortcutsModal";
 import { TalkPanel } from "@/components/chat/TalkPanel";
@@ -39,6 +39,7 @@ function DashboardContent({
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
     const [isTalkPanelOpen, setIsTalkPanelOpen] = useState(false);
@@ -49,7 +50,8 @@ function DashboardContent({
 
     const isAiPage = pathname === "/ai";
     const isChatPage = pathname.startsWith("/chat");
-    const isPro = user?.subscriptionStatus === "pro";
+    const isPro = user?.subscriptionStatus === "pro" || user?.subscriptionStatus === "plus";
+    const isPlus = user?.subscriptionStatus === "plus";
 
     // Closing the panel: always allowed. On chat page, go home since conversation needs the panel.
     const handleTalkClose = () => {
@@ -61,7 +63,12 @@ function DashboardContent({
         if (isTalkPanelOpen) {
             handleTalkClose();
         } else {
-            setIsTalkPanelOpen(true);
+            if (isPlus) {
+                setIsTalkPanelOpen(true);
+            } else {
+                showToast("You need the Plus plan to access Let's Talk feature", "error");
+                router.push("/subscription");
+            }
         }
     };
 
@@ -86,15 +93,25 @@ function DashboardContent({
     // Auto-open TalkPanel when navigating to chat page
     useEffect(() => {
         if (isChatPage) {
-            setIsTalkPanelOpen(true);
+            if (isPlus) {
+                setIsTalkPanelOpen(true);
+            } else {
+                showToast("You need the Plus plan to access Let's Talk feature", "error");
+                router.push("/subscription");
+            }
         }
-    }, [isChatPage]);
+    }, [isChatPage, isPlus, router]);
 
     const handleFabClick = () => {
         if (isAiPage) {
             router.push("/");
         } else {
-            isPro ? router.push("/ai") : router.push("/subscription");
+            if (isPro) {
+                router.push("/ai");
+            } else {
+                showToast("You need the Pro or Plus plan to access AI features", "error");
+                router.push("/subscription");
+            }
         }
     };
 

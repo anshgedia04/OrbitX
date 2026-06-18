@@ -175,7 +175,8 @@ function AIPageContent() {
     const { showToast } = useToast();
 
     useEffect(() => {
-        if (!isAuthLoading && user?.subscriptionStatus !== 'pro') {
+        if (!isAuthLoading && user?.subscriptionStatus !== 'pro' && user?.subscriptionStatus !== 'plus') {
+            showToast("You need the Pro or Plus plan to access AI features", "error");
             router.push("/subscription");
         }
     }, [user, isAuthLoading, router]);
@@ -321,7 +322,7 @@ function AIPageContent() {
     }, [messages, isUserScrolling]);
 
     // Use a combined loading state to prevent flash of content
-    if (isAuthLoading || (user && user.subscriptionStatus !== 'pro')) {
+    if (isAuthLoading || (user && user.subscriptionStatus !== 'pro' && user.subscriptionStatus !== 'plus')) {
         return (
             <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
                 <Loader size="lg" />
