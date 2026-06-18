@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import mongoose from 'mongoose';
 
 export async function POST(req: Request) {
     try {
@@ -36,43 +37,74 @@ export async function POST(req: Request) {
         // 3. Handle payment.captured
         if (event.event === 'payment.captured') {
             const payment = event.payload.payment.entity;
-            const email = payment.email; // Razorpay Payment Page requires email field
-            const orderId = payment.order_id;
+            const email = payment.email;
+            const userId = payment.notes?.userId; // Fetch the secure userId we attached during order creation
+            
+            // Determine plan securely based on the exact amount paid
+            let plan = 'pro';
+            if (payment.amount === 4900) {
+                plan = 'plus';
+            } else if (payment.amount === 900) {
+                plan = 'pro';
+            } else if (payment.notes?.plan) {
+                plan = payment.notes.plan;
+            }
+            
             const paymentId = payment.id;
 
-            if (!email) {
-                console.error('No email found in payment payload');
-                return NextResponse.json({ error: 'No email provided' }, { status: 400 });
+            if (!email && !userId) {
+                console.error('No email or userId found in payment payload');
+                return NextResponse.json({ error: 'No identification provided' }, { status: 400 });
             }
 
             // 4. Update User
             await dbConnect();
+            
+            console.log(`Razorpay Webhook: Received ${event.event} for ${email || userId}. Amount: ${payment.amount}, Computed Plan: ${plan}`);
 
-            // Calculate expiry (1 month for Pro plan)
+            // Calculate expiry (1 month)
             const expiryDate = new Date();
             expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-            const updatedUser = await User.findOneAndUpdate(
-                { email: email },
-                {
-                    $set: {
-                        subscriptionStatus: 'pro',
-                        subscriptionId: paymentId,
-                        subscriptionPlan: 'pro_monthly',
-                        subscriptionExpiry: expiryDate,
+            // Use userId if available (secure), otherwise fallback to email
+            let query: any;
+            if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+                 query = { _id: new mongoose.Types.ObjectId(userId) };
+            } else {
+                 query = { email: email };
+            }
+
+            // Using collection.updateOne bypasses Mongoose schema validation.
+            // Only update if the user isn't already on a higher tier OR if the new plan is 'plus'
+            const updateResult = await User.collection.updateOne(
+                query,
+                [
+                    {
+                        $set: {
+                            subscriptionStatus: {
+                                $cond: {
+                                    if: { $and: [ { $eq: ["$subscriptionStatus", "plus"] }, { $eq: [plan, "pro"] } ] },
+                                    then: "$subscriptionStatus", // Don't downgrade plus to pro on old webhook retries
+                                    else: plan
+                                }
+                            },
+                            subscriptionId: paymentId,
+                            subscriptionPlan: plan,
+                            subscriptionExpiry: expiryDate,
+                            updatedAt: new Date(),
+                        }
                     }
-                },
-                { new: true }
+                ]
             );
 
-            if (!updatedUser) {
-                console.error(`User with email ${email} not found`);
+            if (updateResult.matchedCount === 0) {
+                console.error(`User with identifier ${userId || email} not found`);
                 // Return 200 even if user not found to stop Razorpay from retrying, 
                 // but log it for manual reconciliation.
                 return NextResponse.json({ message: 'User not found, but webhook received' }, { status: 200 });
             }
 
-            console.log(`Subscription activated for ${email}`);
+            console.log(`Subscription activated for ${updatedUser.email}`);
         }
 
         return NextResponse.json({ status: 'ok' });

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Check for subscription expiry
-        if (user.subscriptionStatus === 'pro' && user.subscriptionExpiry && new Date() > new Date(user.subscriptionExpiry)) {
+        if ((user.subscriptionStatus === 'pro' || user.subscriptionStatus === 'plus') && user.subscriptionExpiry && new Date() > new Date(user.subscriptionExpiry)) {
             user.subscriptionStatus = 'free';
             user.subscriptionPlan = undefined;
             user.subscriptionExpiry = undefined;

@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
         path === '/forgot-password' ||
         path === '/reset-password' ||
         path === '/google-callback' ||
+        path === '/subscription' ||
         path.startsWith('/shared') ||
         path.startsWith('/api/auth') ||
         path.startsWith('/api/shared') ||
