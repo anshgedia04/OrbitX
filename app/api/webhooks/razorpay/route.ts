@@ -103,8 +103,7 @@ export async function POST(req: Request) {
                 // but log it for manual reconciliation.
                 return NextResponse.json({ message: 'User not found, but webhook received' }, { status: 200 });
             }
-
-            console.log(`Subscription activated for ${updatedUser.email}`);
+            console.log(`Subscription activated for ${email || userId}`);
         }
 
         return NextResponse.json({ status: 'ok' });
