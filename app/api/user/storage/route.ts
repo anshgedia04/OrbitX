@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import User from "@/models/User";
 import dbConnect from "@/lib/mongodb";
-import { calculateUserStorage, STORAGE_LIMIT, PRO_STORAGE_LIMIT } from "@/lib/storage";
+import { calculateUserStorage, STORAGE_LIMIT, PRO_STORAGE_LIMIT, PLUS_STORAGE_LIMIT } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
         await dbConnect();
         const user = await User.findById(decoded.userId);
         const isPro = user?.subscriptionStatus === 'pro';
-        const limit = isPro ? PRO_STORAGE_LIMIT : STORAGE_LIMIT;
+        const isPlus = user?.subscriptionStatus === 'plus';
+        const limit = isPlus ? PLUS_STORAGE_LIMIT : (isPro ? PRO_STORAGE_LIMIT : STORAGE_LIMIT);
 
         const used = await calculateUserStorage(decoded.userId);
 

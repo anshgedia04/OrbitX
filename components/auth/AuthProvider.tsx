@@ -17,7 +17,7 @@ interface User {
         defaultFolder?: string;
     };
     twoFactorEnabled?: boolean;
-    subscriptionStatus?: 'free' | 'pro';
+    subscriptionStatus?: 'free' | 'pro' | 'plus';
 }
 
 interface AuthContextType {

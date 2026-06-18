@@ -117,7 +117,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
                     <div className="flex items-center gap-3 pl-2 cursor-pointer hover:bg-white/5 p-1.5 rounded-lg transition-colors">
                         <div className="text-right hidden sm:block">
                             <div className="text-sm font-medium text-white">{user?.name || 'User'}</div>
-                            <div className="text-xs text-white/50">{user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</div>
+                            <div className="text-xs text-white/50">{user?.subscriptionStatus=== 'plus' ? 'Plus Plan' : user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</div>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary p-[1px]">
                             <div className="w-full h-full rounded-full bg-[#0f111a] flex items-center justify-center text-xs font-bold text-white overflow-hidden">

@@ -568,7 +568,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
                     {!isCollapsed && (
                         <div className="flex-1 overflow-hidden">
                             <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
-                            <p className="text-xs text-white/50 truncate">{user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
+                            <p className="text-xs text-white/50 truncate">{user?.subscriptionStatus === 'plus' ? 'Plus Plan' : user?.subscriptionStatus === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
                         </div>
                     )}
                     {!isCollapsed && (

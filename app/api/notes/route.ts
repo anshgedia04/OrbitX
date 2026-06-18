@@ -4,7 +4,8 @@ import connectToDatabase from "@/lib/mongodb";
 import Note from "@/models/Note";
 import { verifyToken } from "@/lib/auth";
 import { NoteSchema } from "@/lib/validations";
-import { calculateUserStorage, STORAGE_LIMIT } from "@/lib/storage";
+import { calculateUserStorage, STORAGE_LIMIT, PRO_STORAGE_LIMIT, PLUS_STORAGE_LIMIT } from "@/lib/storage";
+import User from "@/models/User";
 import { logActivity } from "@/lib/activity";
 
 export async function GET(req: NextRequest) {
@@ -117,7 +118,13 @@ export async function POST(req: NextRequest) {
         const currentUsage = await calculateUserStorage(decoded.userId);
         const newNoteSize = Buffer.byteLength(content || "", 'utf8');
 
-        if (currentUsage + newNoteSize > STORAGE_LIMIT) {
+        // Fetch user to get their subscription status
+        const user = await User.findById(decoded.userId);
+        const isPro = user?.subscriptionStatus === 'pro';
+        const isPlus = user?.subscriptionStatus === 'plus';
+        const limit = isPlus ? PLUS_STORAGE_LIMIT : (isPro ? PRO_STORAGE_LIMIT : STORAGE_LIMIT);
+
+        if (currentUsage + newNoteSize > limit) {
             return NextResponse.json({
                 error: "Storage limit exceeded",
                 code: "STORAGE_LIMIT_EXCEEDED"
