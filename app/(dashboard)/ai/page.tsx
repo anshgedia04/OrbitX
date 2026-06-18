@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Send, Bot, User, Wand2, ChevronDown, Check, Cpu, FileText } from "lucide-react";
@@ -168,8 +169,10 @@ function AIPageContent() {
     const searchParams = useSearchParams();
     const processNoteId = searchParams.get("processNoteId");
     const contextNoteId = searchParams.get("contextNoteId");
+    const activeSessionId = searchParams.get("sessionId");
 
     const [isProcessingNote, setIsProcessingNote] = useState(false);
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (!isAuthLoading && user?.subscriptionStatus !== 'pro') {
@@ -195,7 +198,7 @@ function AIPageContent() {
                 } else {
                     const errData = await response.json().catch(() => ({}));
                     console.error("Failed to process note:", errData);
-                    alert(`Failed to process note: ${errData?.error || "Unknown error"}`);
+                    showToast(errData?.error || "Failed to process note", "error");
                     setIsProcessingNote(false);
                     router.replace('/ai');
                 }
@@ -244,40 +247,62 @@ function AIPageContent() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
-    // Load note-specific chat history from Neon when contextNoteId changes
+    // Load chat history (either note-specific or global session)
     useEffect(() => {
-        if (!contextNoteId) {
+        if (!contextNoteId && !activeSessionId) {
             setMessages([WELCOME_MSG]);
             return;
         }
+
         const loadHistory = async () => {
             try {
-                const res = await fetch(`/api/ai/note-chats?noteId=${contextNoteId}`);
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.chats && data.chats.length > 0) {
-                    const loaded: Message[] = data.chats.map((row: any) => ({
-                        id: row.id,
-                        role: row.role as "user" | "assistant",
-                        content: row.content,
-                        timestamp: new Date(row.created_at),
-                    }));
-                    setMessages(loaded);
-                } else {
-                    setMessages([{
-                        id: "note-welcome",
-                        role: "assistant",
-                        content: "Your note has been processed! Ask me anything about it.",
-                        timestamp: new Date()
-                    }]);
+                if (activeSessionId) {
+                    const res = await fetch(`/api/ai/chats/${activeSessionId}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const loaded: Message[] = data.map((row: any) => ({
+                            id: row.id,
+                            role: row.role as "user" | "assistant",
+                            content: row.content,
+                            timestamp: new Date(row.created_at),
+                        }));
+                        setMessages(loaded);
+                    } else {
+                        setMessages([{
+                            id: "session-welcome",
+                            role: "assistant",
+                            content: "New chat session started! How can I help you today?",
+                            timestamp: new Date()
+                        }]);
+                    }
+                } else if (contextNoteId) {
+                    const res = await fetch(`/api/ai/note-chats?noteId=${contextNoteId}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.chats && data.chats.length > 0) {
+                        const loaded: Message[] = data.chats.map((row: any) => ({
+                            id: row.id,
+                            role: row.role as "user" | "assistant",
+                            content: row.content,
+                            timestamp: new Date(row.created_at),
+                        }));
+                        setMessages(loaded);
+                    } else {
+                        setMessages([{
+                            id: "note-welcome",
+                            role: "assistant",
+                            content: "Your note has been processed! Ask me anything about it.",
+                            timestamp: new Date()
+                        }]);
+                    }
                 }
             } catch (e) {
-                console.error("Failed to load note chat history:", e);
+                console.error("Failed to load chat history:", e);
             }
         };
         loadHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [contextNoteId]);
+    }, [contextNoteId, activeSessionId]);
 
     // Scroll handler to detect if user is manually scrolling up
     const handleScroll = useCallback(() => {
@@ -333,7 +358,12 @@ function AIPageContent() {
             const response = await fetch("/api/ai/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages: newMessages, model: selectedModel, contextNoteId }),
+                body: JSON.stringify({ 
+                    messages: newMessages, 
+                    model: selectedModel, 
+                    contextNoteId,
+                    sessionId: activeSessionId
+                }),
             });
 
             if (!response.ok) {

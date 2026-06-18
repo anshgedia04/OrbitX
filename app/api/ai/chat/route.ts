@@ -5,6 +5,7 @@ import { openRouterChat, getOpenRouterKey } from "@/lib/openrouter-config";
 import { githubModelChat, getGithubModelKey } from "@/lib/github-models-config";
 import { groqChat, getGroqKey } from "@/lib/groq-config";
 import { nvidiaChat, getNvidiaKey } from "@/lib/nvidia-config";
+import { sql } from "@/lib/neon";
 
 /* ---------- RATE LIMITING ---------- */
 const RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds (more reasonable)
@@ -294,7 +295,7 @@ export async function POST(req: NextRequest) {
 
     };
 
-    const { messages, model: requestedModel, contextNoteId } = await req.json();
+    const { messages, model: requestedModel, contextNoteId, sessionId } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
@@ -306,27 +307,59 @@ export async function POST(req: NextRequest) {
 
     const modelConfig = requestedModel ? MODEL_REGISTRY[requestedModel] : null;
 
+    if (sessionId) {
+      // Save user message
+      await sql`
+        INSERT INTO ai_chat_messages (session_id, role, content) 
+        VALUES (${sessionId}, 'user', ${lastUserMessage})
+      `;
+      // Update session updated_at
+      await sql`
+        UPDATE ai_chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ${sessionId}
+      `;
+    }
+
     // ── Context Injection via Vector Search (RAG) ─────────────────────
     let ragContextText = "";
     if (contextNoteId) {
       try {
-        const geminiKey = process.env.GOOGLE_AI_API_KEY;
-        if (geminiKey) {
-            // Embed the user's query using Gemini gemini-embedding-001 (3072 dimensions)
+        const hfKey = process.env.HF_KEY;
+        if (hfKey) {
+            // Embed the user's query using Hugging Face (all-MiniLM-L6-v2)
             const embRes = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiKey}`,
+              "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction",
               {
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Authorization": `Bearer ${hfKey}`,
+                  "Content-Type": "application/json",
+                  "x-wait-for-model": "true"
+                },
                 method: "POST",
-                body: JSON.stringify({
-                  content: { parts: [{ text: lastUserMessage }] },
-                }),
+                body: JSON.stringify({ inputs: [lastUserMessage] }),
               }
             );
 
-            if (embRes.ok) {
-              const embData = await embRes.json();
-              const vector: number[] = embData.embedding?.values;
+            if (!embRes.ok) {
+              const errText = await embRes.text();
+              let isWarmup = false;
+              try {
+                const parsed = JSON.parse(errText);
+                if (parsed.error?.includes("loading")) {
+                  isWarmup = true;
+                }
+              } catch (_) {}
+
+              if (isWarmup) {
+                return NextResponse.json(
+                  { error: "AI search model is currently loading/warming up. Please try sending your message again in 20 seconds." },
+                  { status: 503 }
+                );
+              }
+              throw new Error(`Hugging Face Query Embedding failed: ${errText}`);
+            }
+
+            const embData = await embRes.json();
+            const vector: number[] = embData[0];
 
               if (Array.isArray(vector) && vector.length > 0) {
                 const mongoose = require("mongoose");
@@ -336,8 +369,8 @@ export async function POST(req: NextRequest) {
                       "index": "vector_index",
                       "path": "embedding",
                       "queryVector": vector,
-                      "numCandidates": 50,   // Cast wider net
-                      "limit": 8,            // Get top 8, then filter
+                      "numCandidates": 150,  // Cast wider net for better recall
+                      "limit": 15,           // Get top 15 candidates before filtering
                       "filter": {
                         "noteId": { "$eq": mongoose.Types.ObjectId.createFromHexString(contextNoteId) }
                       }
@@ -356,12 +389,14 @@ export async function POST(req: NextRequest) {
                 const relevantChunks = await NoteEmbedding.aggregate(pipeline);
 
                 if (relevantChunks && relevantChunks.length > 0) {
-                  // Filter by minimum similarity score (0.55 = 55% match minimum)
-                  const SCORE_THRESHOLD = 0.55;
+                  // Filter by minimum similarity score (0.45 is more lenient for recall)
+                  const SCORE_THRESHOLD = 0.45;
                   const filtered = relevantChunks.filter((c: any) => c.score >= SCORE_THRESHOLD);
 
-                  // Use filtered chunks if we have any, otherwise fall back to top 3
-                  const toUse = filtered.length > 0 ? filtered : relevantChunks.slice(0, 3);
+                  // Use filtered chunks if we have any, otherwise fall back to top 4 (only if somewhat relevant > 0.3)
+                  const toUse = filtered.length > 0 
+                      ? filtered 
+                      : relevantChunks.filter((c: any) => c.score > 0.30).slice(0, 4);
 
                   // Sort by chunk order (chunkIndex) for natural reading order
                   toUse.sort((a: any, b: any) => a.chunkIndex - b.chunkIndex);
@@ -381,7 +416,6 @@ export async function POST(req: NextRequest) {
                 }
               }
             }
-        }
       } catch (err) {
         console.error("Vector search error:", err);
       }
@@ -397,11 +431,11 @@ ${ragContextText}
 === END OF NOTE CONTEXT ===
 
 Instructions for using the context above:
-1. Base your answer primarily on the NOTE CONTEXT provided.
-2. If the answer is clearly in the context, answer directly and cite the relevant part.
-3. If the question is only partially answered by the context, answer what you can from the context and clearly state what falls outside the note.
-4. If the question is completely unrelated to the note context, say "This doesn't appear to be covered in your note." and then answer from general knowledge.
-5. Keep your answer concise and directly relevant.`
+1. Base your answer primarily on the NOTE CONTEXT provided. Synthesize the information logically.
+2. If the answer is clearly found in the context, answer directly and naturally. Include specific details from the context.
+3. If the question is only partially answered by the context, answer what you can from the context and clearly state what additional information falls outside the note.
+4. If the question is completely unrelated to the note context, briefly state "This doesn't appear to be covered in your note." and then answer based on your general knowledge.
+5. Format your response beautifully using markdown (e.g., bullet points, bold text) for easy reading.`
       : systemInstruction;
 
     // ── Route to the correct provider ──────────────────────────────────
@@ -418,11 +452,25 @@ Instructions for using the context above:
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
+          let fullAssistantResponse = "";
           try {
             for await (const chunk of streamGenerator) {
+              if (chunk.content) fullAssistantResponse += chunk.content;
               // Send the delta formatted as SSE
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
             }
+            
+            // Persist assistant message
+            if (sessionId) {
+              await sql`
+                INSERT INTO ai_chat_messages (session_id, role, content) 
+                VALUES (${sessionId}, 'assistant', ${fullAssistantResponse})
+              `;
+              await sql`
+                UPDATE ai_chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ${sessionId}
+              `;
+            }
+            
           } catch (err: any) {
             console.error("Streaming error:", err);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err.message })}\n\n`));

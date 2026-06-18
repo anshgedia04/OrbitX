@@ -15,7 +15,9 @@ import {
     ChevronDown,
     Rocket,
     Star,
-    MessageCircle
+    MessageCircle,
+    Edit2,
+    MessageSquarePlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./Button";
@@ -44,8 +46,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
     const [aiProcessedNotes, setAiProcessedNotes] = useState<any[]>([]);
     const searchParams = useSearchParams();
     const activeContextNoteId = searchParams.get("contextNoteId");
+    const activeSessionId = searchParams.get("sessionId");
     const [noteToDelete, setNoteToDelete] = useState<{ id: string, title: string } | null>(null);
     const [isDeletingNote, setIsDeletingNote] = useState(false);
+    const [aiChatSessions, setAiChatSessions] = useState<any[]>([]);
 
     const { foldersUpdated, triggerFolderRefresh, storageUsage, setStorageUsage } = useUIStore();
     const { showToast } = useToast();
@@ -62,8 +66,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
         fetchStorage();
         if (isAiPage) {
             fetchAiProcessedNotes();
+            fetchAiChatSessions();
         }
     }, [foldersUpdated, isAiPage, activeContextNoteId]);
+
+    const fetchAiChatSessions = async () => {
+        try {
+            const response = await fetch("/api/ai/chats");
+            if (response.ok) {
+                const data = await response.json();
+                setAiChatSessions(data || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch AI chat sessions");
+        }
+    };
 
     const fetchAiProcessedNotes = async () => {
         try {
@@ -170,6 +187,62 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
         setNoteToDelete({ id: noteId, title });
     };
 
+    const handleCreateChat = async () => {
+        const name = window.prompt("Enter new chat name:");
+        if (!name) return;
+        try {
+            const res = await fetch("/api/ai/chats", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                const newChat = await res.json();
+                setAiChatSessions(prev => [newChat, ...prev]);
+                router.push(`/ai?sessionId=${newChat.id}`);
+            }
+        } catch (e) {
+            console.error("Failed to create chat", e);
+        }
+    };
+
+    const handleRenameChat = async (e: React.MouseEvent, id: string, oldName: string) => {
+        e.stopPropagation();
+        const newName = window.prompt("Enter new name:", oldName);
+        if (!newName || newName === oldName) return;
+        try {
+            const res = await fetch(`/api/ai/chats/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setAiChatSessions(prev => prev.map(c => c.id === id ? updated : c));
+            }
+        } catch (e) {
+            console.error("Failed to rename chat", e);
+        }
+    };
+
+    const handleDeleteChat = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!window.confirm("Delete this chat permanently?")) return;
+        try {
+            const res = await fetch(`/api/ai/chats/${id}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                setAiChatSessions(prev => prev.filter(c => c.id !== id));
+                if (activeSessionId === id) {
+                    router.push("/ai");
+                }
+            }
+        } catch (e) {
+            console.error("Failed to delete chat", e);
+        }
+    };
+
     const sidebarVariants = {
         expanded: { width: 280 },
         collapsed: { width: 80 }
@@ -269,12 +342,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
                 // AI Sidebar Content
                 <div className="flex-1 overflow-y-auto px-4 space-y-4">
                     {!isCollapsed && (
-                        <div className="text-xs font-semibold uppercase text-white/40 mb-2 px-2">History</div>
+                        <div className="flex items-center justify-between px-2 mb-2">
+                            <div className="text-xs font-semibold uppercase text-white/40">History</div>
+                            <button 
+                                onClick={handleCreateChat}
+                                className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                                title="New Chat"
+                            >
+                                <MessageSquarePlus size={14} />
+                            </button>
+                        </div>
                     )}
                     <div className="space-y-1">
-                        <div className="px-3 py-2 rounded-lg bg-white/5 text-sm text-white/70 truncate border-l-2 border-primary cursor-pointer hover:bg-white/10 transition-colors">Previous chat about React...</div>
-                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Ideas for marketing...</div>
-                        <div className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-white/50 truncate cursor-pointer transition-colors">Meeting notes summary...</div>
+                        {aiChatSessions.length > 0 ? (
+                            aiChatSessions.map(session => (
+                                <div 
+                                    key={session.id}
+                                    onClick={() => router.push(`/ai?sessionId=${session.id}`)}
+                                    className={cn(
+                                        "px-3 py-2 rounded-lg text-sm text-white/70 truncate cursor-pointer transition-colors flex items-center justify-between group",
+                                        activeSessionId === session.id
+                                            ? "bg-primary/20 border-l-2 border-primary"
+                                            : "hover:bg-white/5"
+                                    )}
+                                >
+                                    <span className="truncate">{session.name}</span>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => handleRenameChat(e, session.id, session.name)}
+                                            className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-white cursor-pointer"
+                                            title="Rename Chat"
+                                        >
+                                            <Edit2 size={12} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeleteChat(e, session.id)}
+                                            className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400 cursor-pointer"
+                                            title="Delete Chat"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-3 py-2 text-xs text-white/30 italic">No chat history.</div>
+                        )}
                     </div>
 
                     {!isCollapsed && (

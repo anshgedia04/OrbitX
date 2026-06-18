@@ -66,29 +66,40 @@ function chunkText(text: string, chunkSize = 600, overlap = 150): string[] {
     return [...new Set(result)].filter(c => c.length > 20);
 }
 
-// Get Gemini embeddings for multiple chunks in a single batch call to avoid rate limits
-async function getBatchGeminiEmbeddings(texts: string[], apiKey: string): Promise<number[][]> {
-    const requests = texts.map(text => ({
-        model: "models/gemini-embedding-001",
-        content: { parts: [{ text }] }
-    }));
-
+// Get Hugging Face embeddings for multiple chunks in a single batch call
+async function getBatchHFEmbeddings(texts: string[], apiKey: string): Promise<number[][]> {
     const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents?key=${apiKey}`,
+        "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction",
         {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ requests }),
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "x-wait-for-model": "true"
+            },
+            body: JSON.stringify({ inputs: texts }),
         }
     );
 
     if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Gemini Batch Embedding API error: ${err}`);
+        const errText = await response.text();
+        let errorMsg = `Hugging Face Embedding API error: ${errText}`;
+        let status = response.status;
+        try {
+            const parsed = JSON.parse(errText);
+            if (parsed.error?.includes("loading")) {
+                errorMsg = "Hugging Face embedding model is warming up/loading. Please try again in 20 seconds.";
+                status = 503;
+            }
+        } catch (_) {}
+
+        const error = new Error(errorMsg);
+        (error as any).status = status;
+        throw error;
     }
 
     const data = await response.json();
-    return data.embeddings.map((e: any) => e.values);
+    return data;
 }
 
 export async function POST(req: NextRequest) {
@@ -130,24 +141,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Note is empty" }, { status: 400 });
         }
 
-        const geminiKey = process.env.GOOGLE_AI_API_KEY;
-        if (!geminiKey) {
-            return NextResponse.json({ error: "Google AI API key not configured" }, { status: 500 });
+        const hfKey = process.env.HF_KEY;
+        if (!hfKey) {
+            return NextResponse.json({ error: "Hugging Face API key (HF_KEY) not configured" }, { status: 500 });
         }
 
-        // 1. Chunk the text
-        const chunks = chunkText(note.content, 600, 150);
+        // 1. Chunk the text (increased chunk size and overlap for better context retention)
+        const chunks = chunkText(note.content, 800, 200);
 
-        // 2. Embed all chunks in a single batch using Gemini
+        // 2. Embed all chunks in a single batch using Hugging Face
         let allEmbeddings: number[][] = [];
         
-        // Gemini batch API limits to 100 requests per batch call, so we still chunk the batches
         const BATCH_SIZE = 90;
         for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
             const batchChunks = chunks.slice(i, i + BATCH_SIZE);
             if (i > 0) await new Promise(r => setTimeout(r, 1000)); // Small pause between batches
             
-            const batchEmbeddings = await getBatchGeminiEmbeddings(batchChunks, geminiKey);
+            const batchEmbeddings = await getBatchHFEmbeddings(batchChunks, hfKey);
             allEmbeddings = allEmbeddings.concat(batchEmbeddings);
         }
 
@@ -170,7 +180,8 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error("Process Note Error:", error);
-        return NextResponse.json({ error: error.message || "Something went wrong" }, { status: 500 });
+        const status = error.status || 500;
+        return NextResponse.json({ error: error.message || "Something went wrong" }, { status });
     }
 }
 
