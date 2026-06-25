@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Rocket, Sparkles, Shield, Cpu, Lock, FileText, ChevronRight, Check, Zap, Server, ChevronDown } from 'lucide-react';
 import { StarBackground } from '@/components/ui/StarBackground';
+import { FAQSection } from '@/components/landing/FAQSection';
 
 const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -405,6 +406,9 @@ export default function LandingClient() {
                     </div>
                 </div>
             </section>
+
+            {/* FAQ Section */}
+            <FAQSection />
 
             {/* Footer */}
             <footer className="border-t border-white/5 bg-black/50 py-12">
