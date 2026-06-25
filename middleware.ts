@@ -38,6 +38,8 @@ export async function middleware(request: NextRequest) {
         path === '/' ||
         path === '/login' ||
         path === '/signup' ||
+        path === '/ai' ||
+        path === '/notes/new' ||
         path === '/forgot-password' ||
         path === '/reset-password' ||
         path === '/google-callback' ||

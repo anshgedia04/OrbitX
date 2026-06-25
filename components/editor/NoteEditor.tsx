@@ -26,6 +26,7 @@ import { VersionHistoryModal } from "@/components/notes/VersionHistoryModal";
 
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/use-ui-store";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface NoteEditorProps {
     initialData?: {
@@ -51,6 +52,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialData, mode }) => 
     const searchParams = useSearchParams();
     const { showToast } = useToast();
     const { triggerFolderRefresh } = useUIStore();
+    const { user } = useAuth();
 
     const [title, setTitle] = useState(initialData?.title || "");
     const [content, setContent] = useState(initialData?.content || "");
@@ -180,8 +182,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialData, mode }) => 
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Untitled Note"
-                        className="bg-transparent border-none outline-none text-xl font-bold text-white placeholder-white/30 flex-1"
+                        disabled={!user}
+                        placeholder={!user ? "Login to start taking notes..." : "Untitled Note"}
+                        className="bg-transparent border-none outline-none text-xl font-bold text-white placeholder-white/30 flex-1 disabled:opacity-50"
                     />
                 </div>
 
@@ -232,8 +235,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialData, mode }) => 
                         <Star size={20} fill={isFavorite ? "currentColor" : "none"} />
                     </Button>
 
-                    <Button onClick={handleSave} disabled={isSaving} showRocket>
-                        {isSaving ? "Saving..." : "Save"}
+                    <Button onClick={handleSave} disabled={isSaving || !user} showRocket>
+                        {isSaving ? "Saving..." : !user ? "Login to Save" : "Save"}
                     </Button>
                 </div>
             </div>
@@ -257,14 +260,16 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialData, mode }) => 
                                 fontSize: 14,
                                 padding: { top: 20 },
                                 scrollBeyondLastLine: false,
+                                readOnly: !user,
                             }}
                         />
                     ) : (
                         <TextareaAutosize
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="Start writing..."
-                            className="w-full h-full bg-transparent text-white resize-none outline-none p-8 text-lg leading-relaxed font-mono"
+                            disabled={!user}
+                            placeholder={!user ? "You must be logged in to write notes. Start your journey today!" : "Start writing..."}
+                            className="w-full h-full bg-transparent text-white resize-none outline-none p-8 text-lg leading-relaxed font-mono disabled:opacity-50"
                             minRows={20}
                         />
                     )}

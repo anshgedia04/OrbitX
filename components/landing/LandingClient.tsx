@@ -1,11 +1,14 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
+import companyLogo from '@/public/companyLogo.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Rocket, Sparkles, Shield, Cpu, Lock, FileText, ChevronRight, Check, Zap, Server, ChevronDown } from 'lucide-react';
 import { StarBackground } from '@/components/ui/StarBackground';
 import { FAQSection } from '@/components/landing/FAQSection';
+import ReviewCards from '@/components/landing/ReviewCards'
 
 const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -193,7 +196,7 @@ function MockupAnimation() {
                             )}
                         </AnimatePresence>
 
-                        <button className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#1a1b26] border border-white/10 text-[13px] font-medium text-white/90 hover:bg-white/10 transition-colors shadow-lg">
+                        <button aria-label="Select AI Model" className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#1a1b26] border border-white/10 text-[13px] font-medium text-white/90 hover:bg-white/10 transition-colors shadow-lg">
                             <Cpu className="w-4 h-4 text-purple-400" />
                             {step >= -1 ? "Gemini 3.1 Pro" : "OrbitX AI"}
                             <ChevronDown className="w-4 h-4 opacity-50" />
@@ -235,8 +238,8 @@ export default function LandingClient() {
             <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                            <Rocket className="w-5 h-5 text-white" />
+                        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            <Image src={companyLogo} alt="OrbitX Logo" priority className="w-full h-full object-cover" />
                         </div>
                         <span className="font-bold text-xl tracking-tight">OrbitX</span>
                     </div>
@@ -405,6 +408,15 @@ export default function LandingClient() {
                         <Link href="/signup" className="w-full py-3 text-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors font-medium">Get Pro</Link>
                     </div>
                 </div>
+            </section>
+
+            {/* Review section */}
+            <section className="max-w-7xl mx-auto px-6 py-24 border-t border-white/5">
+                <div className="text-center mb-16">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Loved by Students across India.</h2>
+                    <p className="text-white/50 text-lg">See why students, developers, and researchers trust OrbitX as their second brain.</p>
+                </div>
+                <ReviewCards/>
             </section>
 
             {/* FAQ Section */}

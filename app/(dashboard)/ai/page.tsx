@@ -175,11 +175,9 @@ function AIPageContent() {
     const { showToast } = useToast();
 
     useEffect(() => {
-        if (!isAuthLoading && user?.subscriptionStatus !== 'pro' && user?.subscriptionStatus !== 'plus') {
-            showToast("You need the Pro or Plus plan to access AI features", "error");
-            router.push("/subscription");
-        }
-    }, [user, isAuthLoading, router]);
+        // We no longer redirect users here so they can see the teaser of the AI page.
+        // Input is disabled if they are not authenticated or not on a pro/plus plan.
+    }, []);
 
     useEffect(() => {
         if (!processNoteId) return;
@@ -768,9 +766,14 @@ function AIPageContent() {
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Ask anything..."
-                                    className="flex-1 bg-transparent pl-3 sm:pl-5 pr-2 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base text-white focus:outline-none placeholder:text-white/20"
-                                    autoFocus
+                                    disabled={!user || (user.subscriptionStatus !== 'pro' && user.subscriptionStatus !== 'plus')}
+                                    placeholder={
+                                        !user ? "Login to use OrbitX AI..." :
+                                        (user.subscriptionStatus !== 'pro' && user.subscriptionStatus !== 'plus') ? "Upgrade to Pro to use OrbitX AI..." :
+                                        "Ask anything..."
+                                    }
+                                    className="flex-1 bg-transparent pl-3 sm:pl-5 pr-2 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base text-white focus:outline-none placeholder:text-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    autoFocus={!!user && (user.subscriptionStatus === 'pro' || user.subscriptionStatus === 'plus')}
                                 />
 
                                 {/* Divider */}

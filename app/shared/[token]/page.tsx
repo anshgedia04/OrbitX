@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import companyLogo from "@/public/companyLogo.png";
 import { useParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -74,8 +76,8 @@ export default function SharedNotePage() {
             <header className="border-b border-white/10 bg-[#0f111a]/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center font-bold text-white">
-                            <Rocket className="w-5 h-5 text-white" />
+                        <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            <Image src={companyLogo} alt="OrbitX" className="w-full h-full object-cover" />
                         </div>
                         <span className="font-bold text-lg tracking-tight">OrbitX Notes</span>
                     </div>

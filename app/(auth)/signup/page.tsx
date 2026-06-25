@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
+import companyLogo from "@/public/companyLogo.png";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -97,8 +99,8 @@ export default function SignupPage() {
     return (
         <Card className="w-full border-white/20 shadow-[0_0_50px_rgba(107,70,193,0.2)]">
             <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg shadow-primary/30">
-                    <Rocket className="w-6 h-6 text-white" />
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl overflow-hidden mb-4">
+                    <Image src={companyLogo} alt="OrbitX" className="w-full h-full object-cover" />
                 </div>
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                     Join the Mission

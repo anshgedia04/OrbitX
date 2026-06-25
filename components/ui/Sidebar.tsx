@@ -1,5 +1,6 @@
 "use client";
-
+import Image from "next/image";
+import companyLogo from "@/public/companyLogo.png";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -306,6 +307,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
             {/* Toggle Button — hidden when sidebar is locked */}
             {!isLocked && (
                 <button
+                    aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="absolute -right-3 top-8 bg-primary text-white p-1 rounded-full shadow-lg border border-white/20 hover:scale-110 transition-transform z-10 cursor-pointer"
                 >
@@ -328,8 +330,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, onTalkToggle, isTal
             ) : (
                 // Standard Logo
                 <>
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center shadow-lg shadow-primary/20">
-                        <Rocket className="w-5 h-5 text-white animate-pulse" />
+                    <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <Image src={companyLogo} alt="OrbitX" className="w-full h-full object-cover" />
                     </div>
                     <motion.span animate={{ opacity: isCollapsed ? 0 : 1 }} className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                         OrbitX
