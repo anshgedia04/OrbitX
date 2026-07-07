@@ -44,6 +44,7 @@ RUN chown nextjs:nodejs .next
 # Copy the standalone output which contains a minimal server.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY .env* ./
 
 USER nextjs
 
